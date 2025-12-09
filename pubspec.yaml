@@ -53,6 +53,12 @@ dependencies:
   # Device Info
   device_info_plus: ^10.0.1
 
+  # Security (Anti-Fraud Detection)
+  flutter_jailbreak_detection: ^1.10.0
+  safe_device: ^1.1.5
+  trust_location: ^2.0.13
+  network_info_plus: ^6.0.0
+
   # Deep Links & Navigation
   app_links: ^6.3.3
 
