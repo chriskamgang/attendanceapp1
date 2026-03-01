@@ -13,8 +13,8 @@ class GeofencingService {
     accuracy: 100, // 100 mètres
     loiteringDelayMs: 60000, // 1 minute de délai avant de déclencher
     statusChangeDelayMs: 10000, // 10 secondes
-    useActivityRecognition: true,
-    allowMockLocations: false,
+    useActivityRecognition: false, // Désactivé pour iOS simulator
+    allowMockLocations: true, // Activé pour permettre le test sur simulateur
     printDevLog: true,
     geofenceRadiusSortType: GeofenceRadiusSortType.DESC,
   );

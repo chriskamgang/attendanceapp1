@@ -390,18 +390,26 @@ class ApiService {
       final targetMonth = month ?? now.month;
       final targetYear = year ?? now.year;
 
+      final url = '${ApiConstants.baseUrl}/user/salary-status?month=$targetMonth&year=$targetYear';
+      print('💰 Fetching salary status from: $url');
+
       final response = await http.get(
-        Uri.parse('${ApiConstants.baseUrl}/user/salary-status?month=$targetMonth&year=$targetYear'),
+        Uri.parse(url),
         headers: await _getHeaders(includeAuth: true),
       );
+
+      print('📡 Response status: ${response.statusCode}');
+      print('📦 Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return {'success': true, 'data': data['data']};
       } else {
-        return {'success': false, 'message': 'Erreur de chargement du statut salarial'};
+        print('❌ Salary Status Error: ${response.statusCode}');
+        return {'success': false, 'message': 'Erreur de chargement du statut salarial (${response.statusCode})'};
       }
     } catch (e) {
+      print('💥 Exception getSalaryStatus: $e');
       return {'success': false, 'message': 'Erreur réseau: $e'};
     }
   }

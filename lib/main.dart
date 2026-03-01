@@ -18,19 +18,8 @@ import 'models/campus.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialiser les données de formatage de date
-  await initializeDateFormatting('fr_FR', null);
-
-  // Initialiser le storage
+  // Initialiser seulement le storage au démarrage
   await StorageService().init();
-
-  // Initialiser Firebase et les notifications
-  try {
-    await FirebaseNotificationService().initialize();
-    print('✓ Firebase Notifications initialized');
-  } catch (e) {
-    print('⚠ Error initializing Firebase: $e');
-  }
 
   runApp(const MyApp());
 }
@@ -55,73 +44,80 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _initializeServices() async {
-    // Initialiser le service de deep links
-    await _deepLinkService.initialize(
-      onDeepLinkReceived: (data) async {
-        print('🔗 Deep link reçu: ${data.type}');
+    // Initialiser Firebase et date formatting en arrière-plan
+    Future.microtask(() async {
+      try {
+        await initializeDateFormatting('fr_FR', null);
+        await FirebaseNotificationService().initialize();
+        print('✓ Services initialisés');
+      } catch (e) {
+        print('⚠ Erreur initialisation: $e');
+      }
+    });
 
-        if (data.type == DeepLinkType.quickCheckin && data.campusId != null) {
-          // Récupérer le campus
+    // Initialiser le service de deep links (léger)
+    try {
+      await _deepLinkService.initialize(
+        onDeepLinkReceived: (data) async {
+          if (data.type == DeepLinkType.quickCheckin && data.campusId != null) {
+            try {
+              final campusesResult = await _apiService.getCampuses();
+              if (campusesResult['success'] == true) {
+                final campuses = campusesResult['campuses'] as List<Campus>;
+                final campus = campuses.firstWhere(
+                  (c) => c.id == data.campusId,
+                  orElse: () => campuses.first,
+                );
+
+                navigatorKey.currentState?.push(
+                  MaterialPageRoute(
+                    builder: (context) => CheckInScreen(
+                      campus: campus,
+                      preselected: true,
+                      geofenceNotificationId: data.geofenceNotificationId,
+                    ),
+                  ),
+                );
+              }
+            } catch (e) {
+              print('❌ Erreur navigation: $e');
+            }
+          }
+        },
+      );
+
+      FirebaseNotificationService().onGeofenceEntryTapped = (data) async {
+        final campusId = int.tryParse(data['campus_id']?.toString() ?? '');
+        final geofenceNotificationId = int.tryParse(data['geofence_notification_id']?.toString() ?? '');
+
+        if (campusId != null) {
           try {
             final campusesResult = await _apiService.getCampuses();
             if (campusesResult['success'] == true) {
               final campuses = campusesResult['campuses'] as List<Campus>;
               final campus = campuses.firstWhere(
-                (c) => c.id == data.campusId,
+                (c) => c.id == campusId,
                 orElse: () => campuses.first,
               );
 
-              // Naviguer vers check-in screen
               navigatorKey.currentState?.push(
                 MaterialPageRoute(
                   builder: (context) => CheckInScreen(
                     campus: campus,
                     preselected: true,
-                    geofenceNotificationId: data.geofenceNotificationId,
+                    geofenceNotificationId: geofenceNotificationId,
                   ),
                 ),
               );
             }
           } catch (e) {
-            print('❌ Erreur navigation deep link: $e');
+            print('❌ Erreur navigation: $e');
           }
         }
-      },
-    );
-
-    // Initialiser le callback de notification géofencing
-    FirebaseNotificationService().onGeofenceEntryTapped = (data) async {
-      print('🔔 Notification géofencing tapée');
-
-      final campusId = int.tryParse(data['campus_id']?.toString() ?? '');
-      final geofenceNotificationId = int.tryParse(data['geofence_notification_id']?.toString() ?? '');
-
-      if (campusId != null) {
-        try {
-          final campusesResult = await _apiService.getCampuses();
-          if (campusesResult['success'] == true) {
-            final campuses = campusesResult['campuses'] as List<Campus>;
-            final campus = campuses.firstWhere(
-              (c) => c.id == campusId,
-              orElse: () => campuses.first,
-            );
-
-            // Naviguer vers check-in screen
-            navigatorKey.currentState?.push(
-              MaterialPageRoute(
-                builder: (context) => CheckInScreen(
-                  campus: campus,
-                  preselected: true,
-                  geofenceNotificationId: geofenceNotificationId,
-                ),
-              ),
-            );
-          }
-        } catch (e) {
-          print('❌ Erreur navigation notification: $e');
-        }
-      }
-    };
+      };
+    } catch (e) {
+      print('⚠ Erreur deep links: $e');
+    }
   }
 
   @override
@@ -193,45 +189,21 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkAuth() async {
-    // Demander les permissions de localisation dès le démarrage
-    final locationService = LocationService();
+    // Vérifier l'authentification rapidement
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      await authProvider.checkAuth();
 
-    // Vérifier si le service de localisation est activé
-    bool serviceEnabled = await locationService.isLocationServiceEnabled();
-    if (!serviceEnabled) {
       if (!mounted) return;
-      // Afficher un message pour activer le GPS
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez activer le service de localisation GPS'),
-          duration: Duration(seconds: 3),
-        ),
-      );
-    }
 
-    // Demander la permission de localisation
-    bool hasPermission = await locationService.checkPermission();
-    if (!hasPermission) {
-      hasPermission = await locationService.requestPermission();
-      if (!hasPermission && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('La permission de localisation est nécessaire pour utiliser cette application'),
-            duration: Duration(seconds: 5),
-          ),
-        );
+      if (authProvider.isAuthenticated) {
+        Navigator.of(context).pushReplacementNamed('/home');
+      } else {
+        Navigator.of(context).pushReplacementNamed('/login');
       }
-    }
-
-    // Vérifier l'authentification
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    await authProvider.checkAuth();
-
-    if (!mounted) return;
-
-    if (authProvider.isAuthenticated) {
-      Navigator.of(context).pushReplacementNamed('/home');
-    } else {
+    } catch (e) {
+      print('❌ Erreur auth: $e');
+      if (!mounted) return;
       Navigator.of(context).pushReplacementNamed('/login');
     }
   }

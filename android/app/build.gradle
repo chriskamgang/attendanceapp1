@@ -61,6 +61,12 @@ flutter {
     source '../..'
 }
 
+configurations {
+    all {
+        exclude group: 'com.github.scottyab', module: 'rootbeer'
+    }
+}
+
 dependencies {
     // Firebase
     implementation platform('com.google.firebase:firebase-bom:32.7.0')
@@ -73,6 +79,9 @@ dependencies {
 
     // Core library desugaring
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
+
+    // Force the newer version of rootbeer to avoid duplicate classes
+    implementation 'com.scottyab:rootbeer-lib:0.1.1'
 }
 
 // Apply Google Services plugin at the end
