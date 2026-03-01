@@ -239,6 +239,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildSalarySummary() {
     final salary = _salaryStatus!['salary'];
+    final attendance = _salaryStatus!['attendance'];
+    final lateness = _salaryStatus!['lateness'];
 
     return Card(
       elevation: 2,
@@ -264,12 +266,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             _buildSalaryRow('Salaire Brut', salary['gross_salary'], Colors.grey[700]!),
             const SizedBox(height: 12),
+
+            // NOUVEAU: Afficher les jours travaillés
+            _buildInfoRow('Jours Travaillés', '${attendance['days_worked']} jours', Colors.blue[700]!),
+            const SizedBox(height: 12),
+
+            // NOUVEAU: Afficher les retards
+            _buildInfoRow('Retards', '${lateness['total_late_minutes']} minutes', Colors.orange[700]!),
+            const SizedBox(height: 12),
+
             _buildSalaryRow('Total Déductions', salary['total_deductions'], Colors.red[700]!, isNegative: true),
             const Divider(height: 24),
             _buildSalaryRow('Salaire Net Estimé', salary['net_salary'], Colors.green[700]!, isBold: true),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, Color color) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.normal,
+            color: Colors.grey[700],
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 
