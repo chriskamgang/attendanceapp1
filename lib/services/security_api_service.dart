@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'security_service.dart';
+import '../utils/constants.dart';
 
 /// Service API pour communiquer avec le backend Laravel concernant la sécurité
 class SecurityApiService {
@@ -9,8 +10,8 @@ class SecurityApiService {
   factory SecurityApiService() => _instance;
   SecurityApiService._internal();
 
-  // Base URL de l'API (à configurer selon l'environnement)
-  static const String baseUrl = 'http://127.0.0.1:8002/api';
+  // Utiliser l'URL centralisée depuis les constantes
+  static String get baseUrl => ApiConstants.baseUrl;
 
   String? _authToken;
 

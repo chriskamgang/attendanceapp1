@@ -6,7 +6,9 @@ import '../../models/campus.dart';
 import '../../models/unite_enseignement.dart';
 import '../../services/api_service.dart';
 import '../../widgets/unite_enseignement_card.dart';
+import '../../models/ue_schedule.dart';
 import '../attendance/check_in_screen.dart';
+import '../schedule/schedule_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,6 +25,14 @@ class _HomeScreenState extends State<HomeScreen> {
   List<UniteEnseignement> _unitesNonActivees = [];
   Map<String, dynamic>? _ueStats;
   bool _isLoading = true;
+  List<Map<String, dynamic>> _todaySchedule = [];
+
+  // Couleurs du thème
+  static const Color _primaryDark = Color(0xFF1A237E);
+  static const Color _primaryMid = Color(0xFF283593);
+  static const Color _primaryLight = Color(0xFF3949AB);
+  static const Color _accentBlue = Color(0xFF42A5F5);
+  static const Color _surfaceGrey = Color(0xFFF5F7FA);
 
   @override
   void initState() {
@@ -38,19 +48,16 @@ class _HomeScreenState extends State<HomeScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.user;
 
-    // Charger les données du dashboard
     final dashResult = await _apiService.getDashboard();
     if (dashResult['success']) {
       _dashboardData = dashResult['data'];
     }
 
-    // Charger les campus
     final campusResult = await _apiService.getMyCampuses();
     if (campusResult['success']) {
       _campuses = campusResult['campuses'];
     }
 
-    // Si vacataire, charger les UE
     if (user != null && user.isVacataire()) {
       final ueResult = await _apiService.getUnitesEnseignement();
       if (ueResult['success']) {
@@ -65,7 +72,13 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
 
-    // Vérifier le statut actuel
+    if (user != null && (user.isVacataire() || user.isSemiPermanent())) {
+      final scheduleResult = await _apiService.getTodaySchedule();
+      if (scheduleResult['success']) {
+        _todaySchedule = List<Map<String, dynamic>>.from(scheduleResult['data'] ?? []);
+      }
+    }
+
     final attendanceProvider =
         Provider.of<AttendanceProvider>(context, listen: false);
     await attendanceProvider.checkCurrentStatus();
@@ -82,6 +95,32 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.of(context).pushReplacementNamed('/login');
   }
 
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Bonjour';
+    if (hour < 18) return 'Bon après-midi';
+    return 'Bonsoir';
+  }
+
+  String _getEmployeeTypeLabel(String type) {
+    switch (type) {
+      case 'enseignant_vacataire':
+        return 'Enseignant Vacataire';
+      case 'semi_permanent':
+        return 'Semi-Permanent';
+      case 'enseignant_titulaire':
+        return 'Enseignant Titulaire';
+      case 'administratif':
+        return 'Administratif';
+      case 'technique':
+        return 'Technique';
+      case 'direction':
+        return 'Direction';
+      default:
+        return type;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -89,107 +128,248 @@ class _HomeScreenState extends State<HomeScreen> {
     final user = authProvider.user;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Accueil'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadData,
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _logout,
-          ),
-        ],
-      ),
+      backgroundColor: _surfaceGrey,
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(color: _primaryDark),
+            )
           : RefreshIndicator(
+              color: _primaryDark,
               onRefresh: _loadData,
-              child: SingleChildScrollView(
+              child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // En-tête utilisateur
-                    _buildUserHeader(user),
-                    const SizedBox(height: 24),
+                slivers: [
+                  // Header gradient
+                  _buildSliverHeader(user),
 
-                    // Statut check-in
-                    _buildCheckInStatus(attendanceProvider),
-                    const SizedBox(height: 24),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        // Check-in status card
+                        _buildCheckInStatus(attendanceProvider),
+                        const SizedBox(height: 16),
 
-                    // Section UE pour vacataires
-                    if (user != null && user.isVacataire()) ...[
-                      _buildUESection(),
-                      const SizedBox(height: 24),
-                    ],
+                        // Vérifications en attente
+                        if (_dashboardData != null &&
+                            _dashboardData!['pending_presence_checks'] > 0) ...[
+                          _buildPendingChecks(),
+                          const SizedBox(height: 16),
+                        ],
 
-                    // Vérifications en attente
-                    if (_dashboardData != null &&
-                        _dashboardData!['pending_presence_checks'] > 0)
-                      _buildPendingChecks(),
+                        // Statistiques du mois
+                        if (_dashboardData != null) ...[
+                          _buildMonthStats(),
+                          const SizedBox(height: 20),
+                        ],
 
-                    const SizedBox(height: 24),
+                        // Emploi du temps du jour
+                        if (user != null && (user.isVacataire() || user.isSemiPermanent())) ...[
+                          _buildTodayScheduleSection(),
+                          const SizedBox(height: 20),
+                        ],
 
-                    // Statistiques du mois
-                    if (_dashboardData != null) _buildMonthStats(),
+                        // Section UE pour vacataires
+                        if (user != null && user.isVacataire()) ...[
+                          _buildUESection(),
+                          const SizedBox(height: 20),
+                        ],
 
-                    const SizedBox(height: 24),
-
-                    // Liste des campus
-                    _buildCampusList(),
-                  ],
-                ),
+                        // Liste des campus
+                        _buildCampusList(),
+                        const SizedBox(height: 16),
+                      ]),
+                    ),
+                  ),
+                ],
               ),
             ),
     );
   }
 
-  Widget _buildUserHeader(user) {
-    return Card(
+  Widget _buildSliverHeader(user) {
+    return SliverAppBar(
+      expandedHeight: 180,
+      floating: false,
+      pinned: true,
+      backgroundColor: _primaryDark,
+      surfaceTintColor: Colors.transparent,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.refresh_rounded, color: Colors.white70),
+          onPressed: _loadData,
+        ),
+        IconButton(
+          icon: const Icon(Icons.logout_rounded, color: Colors.white70),
+          onPressed: _logout,
+        ),
+      ],
+      flexibleSpace: FlexibleSpaceBar(
+        background: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [_primaryDark, _primaryMid, _primaryLight],
+            ),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 48, 20, 48),
+              child: Row(
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        user?.firstName?.substring(0, 1).toUpperCase() ?? 'U',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${_getGreeting()},',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.white.withValues(alpha: 0.7),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          user?.fullName ?? 'Utilisateur',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            user != null
+                                ? _getEmployeeTypeLabel(user.employeeType)
+                                : '',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCheckInStatus(AttendanceProvider attendanceProvider) {
+    final hasActive = attendanceProvider.hasActiveCheckIn;
+    final activeCheckIns = attendanceProvider.activeCheckIns;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: (hasActive ? Colors.green : Colors.orange).withValues(alpha: 0.15),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 30,
-              backgroundColor: Colors.blue,
-              child: Text(
-                user?.firstName?.substring(0, 1).toUpperCase() ?? 'U',
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: hasActive
+                    ? Colors.green.withValues(alpha: 0.1)
+                    : Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                hasActive ? Icons.check_circle_rounded : Icons.access_time_rounded,
+                color: hasActive ? Colors.green[600] : Colors.orange[600],
+                size: 26,
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    user?.fullName ?? 'Utilisateur',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                    hasActive ? 'Check-in actif' : 'Pas de check-in actif',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: hasActive ? Colors.green[800] : Colors.orange[800],
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    user?.role?.displayName ?? '',
-                    style: TextStyle(
-                      color: Colors.grey[600],
+                  if (hasActive && activeCheckIns.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    ...activeCheckIns.map((attendance) => Text(
+                          '${attendance.campus?.name ?? 'Campus'} - ${attendance.getFormattedTime()}',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        )),
+                  ] else if (!hasActive) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      'Sélectionnez un campus pour pointer',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                     ),
-                  ),
-                  Text(
-                    user?.department?.name ?? '',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
+                  ],
+                ],
+              ),
+            ),
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: hasActive ? Colors.green : Colors.orange[400],
+                boxShadow: [
+                  BoxShadow(
+                    color: (hasActive ? Colors.green : Colors.orange).withValues(alpha: 0.4),
+                    blurRadius: 6,
                   ),
                 ],
               ),
@@ -200,91 +380,71 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCheckInStatus(AttendanceProvider attendanceProvider) {
-    final hasActive = attendanceProvider.hasActiveCheckIn;
-    final activeCheckIns = attendanceProvider.activeCheckIns;
-
-    return Card(
-      color: hasActive ? Colors.green[50] : Colors.orange[50],
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  hasActive ? Icons.check_circle : Icons.info_outline,
-                  color: hasActive ? Colors.green : Colors.orange,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  hasActive ? 'Check-in actif' : 'Pas de check-in actif',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: hasActive ? Colors.green[700] : Colors.orange[700],
-                  ),
-                ),
-              ],
-            ),
-            if (hasActive && activeCheckIns.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              ...activeCheckIns.map((attendance) => Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      '${attendance.campus?.name ?? 'Campus'} - Check-in à ${attendance.getFormattedTime()}',
-                      style: TextStyle(
-                        color: Colors.grey[700],
-                        fontSize: 12,
-                      ),
-                    ),
-                  )),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildPendingChecks() {
     final count = _dashboardData!['pending_presence_checks'];
-    return Card(
-      color: Colors.red[50],
-      child: InkWell(
-        onTap: () {
-          // TODO: Naviguer vers l'écran des vérifications
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Icon(Icons.notifications_active, color: Colors.red[700]),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Vérifications en attente',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red[700],
-                      ),
-                    ),
-                    Text(
-                      '$count vérification${count > 1 ? 's' : ''} à traiter',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[700],
-                      ),
-                    ),
-                  ],
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.red[600]!, Colors.red[400]!],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.red.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () {},
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.notifications_active_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
                 ),
-              ),
-              Icon(Icons.arrow_forward_ios,
-                  size: 16, color: Colors.red[700]),
-            ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Vérifications en attente',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Text(
+                        '$count vérification${count > 1 ? 's' : ''} à traiter',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withValues(alpha: 0.8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios_rounded,
+                    size: 16, color: Colors.white70),
+              ],
+            ),
           ),
         ),
       ),
@@ -296,13 +456,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Statistiques du mois',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        _buildSectionTitle('Statistiques du mois', Icons.bar_chart_rounded),
         const SizedBox(height: 12),
         Row(
           children: [
@@ -310,26 +464,29 @@ class _HomeScreenState extends State<HomeScreen> {
               child: _buildStatCard(
                 'Check-ins',
                 '${stats['total_check_ins']}',
-                Icons.login,
-                Colors.blue,
+                Icons.login_rounded,
+                const Color(0xFF2196F3),
+                const Color(0xFF1976D2),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
               child: _buildStatCard(
                 'Retards',
                 '${stats['total_late']}',
-                Icons.schedule,
-                Colors.orange,
+                Icons.schedule_rounded,
+                const Color(0xFFFF9800),
+                const Color(0xFFF57C00),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
               child: _buildStatCard(
                 'Jours',
                 '${stats['days_worked']}',
-                Icons.calendar_today,
-                Colors.green,
+                Icons.calendar_today_rounded,
+                const Color(0xFF4CAF50),
+                const Color(0xFF388E3C),
               ),
             ),
           ],
@@ -338,118 +495,176 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 32),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+  Widget _buildStatCard(
+      String label, String value, IconData icon, Color color, Color darkColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
             ),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+            child: Icon(icon, color: darkColor, size: 22),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: darkColor,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[500],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildCampusList() {
-    if (_campuses.isEmpty) {
-      return const Card(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Text('Aucun campus assigné'),
-        ),
-      );
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Mes Campus',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        _buildSectionTitle('Mes Campus', Icons.location_on_rounded),
         const SizedBox(height: 12),
-        ..._campuses.map((campus) => _buildCampusCard(campus)).toList(),
+        if (_campuses.isEmpty)
+          _buildEmptyState(
+            icon: Icons.location_off_rounded,
+            message: 'Aucun campus assigné',
+          )
+        else
+          ..._campuses.map((campus) => _buildCampusCard(campus)),
       ],
     );
   }
 
   Widget _buildCampusCard(Campus campus) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => CheckInScreen(campus: campus),
-            ),
-          );
-          // Si check-in/out réussi, recharger les données
-          if (result == true) {
-            _loadData();
-          }
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Icon(
-                Icons.location_on,
-                color: campus.isActive ? Colors.blue : Colors.grey,
-                size: 40,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CheckInScreen(campus: campus),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      campus.name,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      campus.address,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Horaires: ${campus.getFormattedStartTime()} - ${campus.getFormattedEndTime()}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
+            );
+            if (result == true) {
+              _loadData();
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: campus.isActive
+                        ? _primaryDark.withValues(alpha: 0.08)
+                        : Colors.grey.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.apartment_rounded,
+                    color: campus.isActive ? _primaryDark : Colors.grey,
+                    size: 24,
+                  ),
                 ),
-              ),
-              Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
-            ],
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        campus.name,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        campus.address,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[500],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.schedule_rounded,
+                              size: 13, color: Colors.grey[400]),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${campus.getFormattedStartTime()} - ${campus.getFormattedEndTime()}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[500],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: _primaryDark.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: _primaryDark,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -460,23 +675,47 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // En-tête avec statistiques globales
-        Card(
-          color: Colors.blue[50],
+        // En-tête UE avec stats
+        Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [_primaryDark, _primaryLight],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: _primaryDark.withValues(alpha: 0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Icon(Icons.school, color: Colors.blue[700]),
-                    const SizedBox(width: 8),
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.school_rounded,
+                          color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(width: 12),
                     const Text(
                       'Mes Unités d\'Enseignement',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
                     ),
                   ],
@@ -486,20 +725,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: _buildStatItem(
+                        child: _buildUEStatItem(
                           label: 'Heures effectuées',
-                          value: '${_ueStats!['heures_effectuees']?.toStringAsFixed(1) ?? 0}h',
-                          icon: Icons.check_circle,
-                          color: Colors.green,
+                          value:
+                              '${_ueStats!['heures_effectuees']?.toStringAsFixed(1) ?? 0}h',
+                          icon: Icons.check_circle_outline_rounded,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
                       Expanded(
-                        child: _buildStatItem(
+                        child: _buildUEStatItem(
                           label: 'Montant payé',
-                          value: '${(_ueStats!['montant_paye'] ?? 0).toStringAsFixed(0)} F',
-                          icon: Icons.attach_money,
-                          color: Colors.blue,
+                          value:
+                              '${(_ueStats!['montant_paye'] ?? 0).toStringAsFixed(0)} F',
+                          icon: Icons.payments_rounded,
                         ),
                       ),
                     ],
@@ -513,14 +752,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
         // UE Activées
         if (_unitesActivees.isNotEmpty) ...[
-          Text(
-            'UE Activées (${_unitesActivees.length})',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 12),
+          _buildSubSectionTitle(
+              'UE Activées (${_unitesActivees.length})', Colors.green),
+          const SizedBox(height: 8),
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -528,9 +762,7 @@ class _HomeScreenState extends State<HomeScreen> {
             itemBuilder: (context, index) {
               return UniteEnseignementCard(
                 ue: _unitesActivees[index],
-                onTap: () {
-                  // TODO: Naviguer vers les détails de l'UE
-                },
+                onTap: () {},
               );
             },
           ),
@@ -538,15 +770,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
         // UE Non Activées
         if (_unitesNonActivees.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          Text(
-            'UE En Attente d\'Activation (${_unitesNonActivees.length})',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
           const SizedBox(height: 12),
+          _buildSubSectionTitle(
+              'UE En Attente (${_unitesNonActivees.length})', Colors.orange),
+          const SizedBox(height: 8),
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -554,53 +781,268 @@ class _HomeScreenState extends State<HomeScreen> {
             itemBuilder: (context, index) {
               return UniteEnseignementCard(
                 ue: _unitesNonActivees[index],
-                onTap: () {
-                  // TODO: Naviguer vers les détails de l'UE
-                },
+                onTap: () {},
               );
             },
           ),
         ],
 
-        // Message si aucune UE
+        // Aucune UE
         if (_unitesActivees.isEmpty && _unitesNonActivees.isEmpty)
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Center(
-                child: Column(
-                  children: [
-                    Icon(Icons.school_outlined, size: 48, color: Colors.grey[400]),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Aucune unité d\'enseignement attribuée',
-                      style: TextStyle(color: Colors.grey[600]),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            ),
+          _buildEmptyState(
+            icon: Icons.school_outlined,
+            message: 'Aucune unité d\'enseignement attribuée',
           ),
       ],
     );
   }
 
-  Widget _buildStatItem({
+  Widget _buildTodayScheduleSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Flexible(
+              child: _buildSectionTitle(
+                  'Emploi du Temps', Icons.calendar_month_rounded),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ScheduleScreen(),
+                  ),
+                );
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: _primaryDark,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  side: BorderSide(color: _primaryDark.withValues(alpha: 0.2)),
+                ),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Semaine', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                  SizedBox(width: 4),
+                  Icon(Icons.arrow_forward_rounded, size: 14),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (_todaySchedule.isEmpty)
+          _buildEmptyState(
+            icon: Icons.event_busy_rounded,
+            message: 'Pas de cours aujourd\'hui',
+          )
+        else
+          ...List.generate(_todaySchedule.length, (index) {
+            final item = _todaySchedule[index];
+            final ue = item['ue'] as Map<String, dynamic>?;
+            final campus = item['campus'] as Map<String, dynamic>?;
+            final heureDebut = item['heure_debut'] ?? '';
+            final heureFin = item['heure_fin'] ?? '';
+            final salle = item['salle'];
+
+            final colors = [
+              const Color(0xFF2196F3),
+              const Color(0xFF4CAF50),
+              const Color(0xFFFF9800),
+              const Color(0xFF9C27B0),
+              const Color(0xFF009688),
+            ];
+            final color = colors[index % colors.length];
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: IntrinsicHeight(
+                child: Row(
+                  children: [
+                    // Barre colorée latérale
+                    Container(
+                      width: 4,
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(14),
+                          bottomLeft: Radius.circular(14),
+                        ),
+                      ),
+                    ),
+                    // Horaire
+                    Container(
+                      width: 70,
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            heureDebut,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: color,
+                              fontSize: 13,
+                            ),
+                          ),
+                          Container(
+                            width: 1,
+                            height: 12,
+                            margin: const EdgeInsets.symmetric(vertical: 2),
+                            color: Colors.grey[300],
+                          ),
+                          Text(
+                            heureFin,
+                            style: TextStyle(
+                              color: Colors.grey[400],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Détails
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              ue?['code_ue'] ?? '',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              ue?['nom_matiere'] ?? '',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 12,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                if (campus != null) ...[
+                                  Icon(Icons.location_on_rounded,
+                                      size: 12, color: Colors.grey[400]),
+                                  const SizedBox(width: 3),
+                                  Flexible(
+                                    child: Text(
+                                      campus['name'] ?? '',
+                                      style: TextStyle(
+                                          fontSize: 11, color: Colors.grey[500]),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                                if (salle != null &&
+                                    salle.toString().isNotEmpty) ...[
+                                  const SizedBox(width: 8),
+                                  Icon(Icons.meeting_room_rounded,
+                                      size: 12, color: Colors.grey[400]),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    'Salle $salle',
+                                    style: TextStyle(
+                                        fontSize: 11, color: Colors.grey[500]),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+      ],
+    );
+  }
+
+  // --- Composants réutilisables ---
+
+  Widget _buildSectionTitle(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: _primaryDark),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1A1A2E),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSubSectionTitle(String title, Color color) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 16,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[700],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUEStatItem({
     required String label,
     required String value,
     required IconData icon,
-    required Color color,
   }) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         children: [
-          Icon(icon, color: color, size: 20),
+          Icon(icon, color: Colors.white70, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -609,21 +1051,53 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[600],
+                    fontSize: 10,
+                    color: Colors.white.withValues(alpha: 0.6),
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   value,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: color,
+                    color: Colors.white,
                   ),
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState({required IconData icon, required String message}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 40, color: Colors.grey[300]),
+          const SizedBox(height: 10),
+          Text(
+            message,
+            style: TextStyle(
+              color: Colors.grey[500],
+              fontSize: 13,
+            ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),

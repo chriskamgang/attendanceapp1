@@ -7,6 +7,7 @@ import '../../providers/attendance_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/location_service.dart';
 import '../../services/api_service.dart';
+import '../schedule/schedule_screen.dart';
 
 class CheckInScreen extends StatefulWidget {
   final Campus campus;
@@ -34,6 +35,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
   List<UniteEnseignement> _unitesDisponibles = [];
   UniteEnseignement? _selectedUnite;
   bool _isLoadingUnites = false;
+  List<Map<String, dynamic>> _rawUeData = [];
 
   @override
   void initState() {
@@ -65,10 +67,13 @@ class _CheckInScreenState extends State<CheckInScreen> {
         _isLoadingUnites = true;
       });
 
-      final result = await _apiService.getUnitesEnseignementActives();
+      final result = await _apiService.getUesAvailableNow();
       if (result['success']) {
         setState(() {
           _unitesDisponibles = result['unites'];
+          _rawUeData = result['raw_data'] != null
+              ? List<Map<String, dynamic>>.from(result['raw_data'])
+              : [];
           _isLoadingUnites = false;
         });
       } else {
@@ -519,15 +524,32 @@ class _CheckInScreenState extends State<CheckInScreen> {
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.orange[200]!),
                 ),
-                child: Row(
+                child: Column(
                   children: [
-                    Icon(Icons.warning_amber, color: Colors.orange[700]),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'Aucune UE disponible pour le check-in',
-                        style: TextStyle(fontSize: 13),
-                      ),
+                    Row(
+                      children: [
+                        Icon(Icons.warning_amber, color: Colors.orange[700]),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'Aucune UE programmée pour le moment',
+                            style: TextStyle(fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ScheduleScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.calendar_today, size: 16),
+                      label: const Text('Voir mon emploi du temps'),
                     ),
                   ],
                 ),
@@ -546,7 +568,21 @@ class _CheckInScreenState extends State<CheckInScreen> {
                         isExpanded: true,
                         value: _selectedUnite,
                         hint: const Text('Sélectionner une UE'),
-                        items: _unitesDisponibles.map((ue) {
+                        items: _unitesDisponibles.asMap().entries.map((entry) {
+                          final ue = entry.value;
+                          final index = entry.key;
+                          final rawData = index < _rawUeData.length ? _rawUeData[index] : null;
+                          final schedule = rawData?['schedule'] as Map<String, dynamic>?;
+
+                          String subtitle = '${ue.codeUe} • ${ue.heuresRestantes.toStringAsFixed(1)}h restantes';
+                          if (schedule != null) {
+                            subtitle = '${schedule['heure_debut']}-${schedule['heure_fin']}';
+                            if (schedule['salle'] != null) {
+                              subtitle += ', salle ${schedule['salle']}';
+                            }
+                            subtitle += ' • ${ue.heuresRestantes.toStringAsFixed(1)}h restantes';
+                          }
+
                           return DropdownMenuItem<UniteEnseignement>(
                             value: ue,
                             child: Column(
@@ -561,7 +597,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
                                   ),
                                 ),
                                 Text(
-                                  '${ue.codeUe} • ${ue.heuresRestantes.toStringAsFixed(1)}h restantes',
+                                  subtitle,
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey[600],

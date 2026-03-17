@@ -736,6 +736,92 @@ class ApiService {
     }
   }
 
+  // ========== EMPLOI DU TEMPS ==========
+
+  /// Récupérer mon emploi du temps complet de la semaine
+  Future<Map<String, dynamic>> getMySchedule() async {
+    try {
+      final url = '${ApiConstants.baseUrl}${ApiConstants.mySchedule}';
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: await _getHeaders(includeAuth: true),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {
+          'success': data['success'] ?? true,
+          'data': data['data'] ?? {},
+        };
+      } else {
+        return {'success': false, 'message': 'Erreur de chargement de l\'emploi du temps'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur réseau: $e'};
+    }
+  }
+
+  /// Récupérer les créneaux d'aujourd'hui
+  Future<Map<String, dynamic>> getTodaySchedule() async {
+    try {
+      final url = '${ApiConstants.baseUrl}${ApiConstants.todaySchedule}';
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: await _getHeaders(includeAuth: true),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {
+          'success': data['success'] ?? true,
+          'data': data['data'] ?? [],
+        };
+      } else {
+        return {'success': false, 'message': 'Erreur de chargement'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur réseau: $e'};
+    }
+  }
+
+  /// Récupérer les UE disponibles maintenant (dans le créneau horaire)
+  Future<Map<String, dynamic>> getUesAvailableNow() async {
+    try {
+      final url = '${ApiConstants.baseUrl}${ApiConstants.uesAvailableNow}';
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: await _getHeaders(includeAuth: true),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final unites = (data['data'] as List).map((ue) {
+          return UniteEnseignement.fromJson(ue);
+        }).toList();
+        return {
+          'success': true,
+          'unites': unites,
+          'raw_data': data['data'],
+        };
+      } else {
+        return {
+          'success': false,
+          'message': 'Erreur de chargement des UE disponibles',
+          'unites': <UniteEnseignement>[],
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Erreur réseau: $e',
+        'unites': <UniteEnseignement>[],
+      };
+    }
+  }
+
   // ========== GÉOFENCING ==========
 
   /// Envoyer un événement d'entrée en zone géographique

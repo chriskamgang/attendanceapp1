@@ -22,42 +22,6 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
-	<key>CFBundleVersion</key>
-	<string>$(FLUTTER_BUILD_NUMBER)</string>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Cette application a besoin de votre position pour vérifier que vous êtes sur le campus lors du pointage et pour les vérifications de présence.</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Cette application a besoin de votre position pour les vérifications de présence même en arrière-plan.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Cette application a besoin de votre position pour vérifier que vous êtes sur le campus lors du pointage.</string>
-	<key>NSUserNotificationsUsageDescription</key>
-	<string>Cette application envoie des notifications pour les rappels de pointage et les vérifications de présence.</string>
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<false/>
-		<key>NSExceptionDomains</key>
-		<dict>
-			<key>192.168.1.181</key>
-			<dict>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<true/>
-				<key>NSIncludesSubdomains</key>
-				<true/>
-			</dict>
-		</dict>
-	</dict>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
-	<true/>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>remote-notification</string>
-		<string>location</string>
-		<string>fetch</string>
-		<string>processing</string>
-	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -70,6 +34,42 @@
 				<string>attendanceapp</string>
 			</array>
 		</dict>
+	</array>
+	<key>CFBundleVersion</key>
+	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>192.168.1.159</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Cette application a besoin de votre position pour vérifier que vous êtes sur le campus lors du pointage et pour les vérifications de présence.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Cette application a besoin de votre position pour les vérifications de présence même en arrière-plan.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Cette application a besoin de votre position pour vérifier que vous êtes sur le campus lors du pointage.</string>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>Cette application envoie des notifications pour les rappels de pointage et les vérifications de présence.</string>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+		<string>location</string>
+		<string>fetch</string>
+		<string>processing</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
