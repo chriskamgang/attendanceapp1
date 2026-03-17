@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter_jailbreak_detection/flutter_jailbreak_detection.dart';
 import 'package:safe_device/safe_device.dart';
-import 'package:trust_location/trust_location.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 
@@ -140,13 +139,10 @@ class SecurityService {
   /// 2. Détection Mock Location (Fake GPS)
   Future<bool> _checkMockLocation() async {
     try {
-      // Utiliser trust_location package
-      TrustLocation.start(5); // Intervalle 5 secondes
-
-      // Attendre un peu pour obtenir le résultat
-      await Future.delayed(const Duration(seconds: 2));
-
-      final isMockLocation = await TrustLocation.isMockLocation ?? false;
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+      final isMockLocation = position.isMocked;
 
       if (isMockLocation) {
         debugPrint('   ⚠️ Mock Location détecté!');
@@ -353,7 +349,7 @@ class SecurityService {
   /// Nettoyer les ressources
   void dispose() {
     try {
-      TrustLocation.stop();
+      // Cleanup si nécessaire
     } catch (e) {
       debugPrint('   ⚠️ Erreur lors du nettoyage: $e');
     }

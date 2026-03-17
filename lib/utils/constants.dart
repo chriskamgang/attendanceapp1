@@ -6,7 +6,7 @@ class ApiConstants {
   // Pour iOS Simulator: utilisez 127.0.0.1 ou localhost
   // Pour émulateur Android: utilisez 10.0.2.2 au lieu de localhost
   // Pour appareil physique: utilisez l'IP de votre machine (ex: 192.168.x.x)
-  static const String localUrl = 'http://127.0.0.1:8000/api';
+  static const String localUrl = 'http://10.0.2.2:8000/api';
   static const String productionUrl = 'https://rh.iues-insambot.com/api';
 
   // URL active selon l'environnement

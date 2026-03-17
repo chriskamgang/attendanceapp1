@@ -31,21 +31,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadSalaryStatus() async {
     setState(() => _isLoading = true);
 
-    final result = await _apiService.getSalaryStatus(
-      month: _selectedMonth.month,
-      year: _selectedMonth.year,
-    );
+    try {
+      final result = await _apiService.getSalaryStatus(
+        month: _selectedMonth.month,
+        year: _selectedMonth.year,
+      );
 
-    if (result['success']) {
+      if (result['success'] && result['data'] != null) {
+        final data = result['data'] as Map<String, dynamic>;
+        // Ensure required keys exist with defaults
+        data['salary'] ??= {
+          'gross_salary': 0, 'net_salary': 0, 'total_deductions': 0,
+          'hourly_rate': 0, 'hours_worked': 0,
+        };
+        data['attendance'] ??= {
+          'working_days': 0, 'days_worked': 0, 'days_not_worked': 0,
+          'days_justified': 0, 'scheduled_days': 0, 'days_missed': 0,
+        };
+        data['lateness'] ??= {'total_late_minutes': 0};
+        data['deductions'] ??= {
+          'late_penalty_amount': 0, 'absence_deduction': 0,
+          'manual_deductions': 0, 'loan_deductions': 0,
+        };
+        setState(() {
+          _salaryStatus = data;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _salaryStatus = null;
+          _isLoading = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'] ?? 'Erreur lors du chargement des données')),
+          );
+        }
+      }
+    } catch (e) {
       setState(() {
-        _salaryStatus = result['data'];
+        _salaryStatus = null;
         _isLoading = false;
       });
-    } else {
-      setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur lors du chargement des données')),
+          SnackBar(content: Text('Erreur: $e')),
         );
       }
     }
@@ -525,8 +555,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 8),
           _buildDeductionTile(
             'Absences',
-            '${_salaryStatus!['attendance']['days_not_worked'] - _salaryStatus!['attendance']['days_justified']} jours',
-            deductions['absence_deduction'],
+            '${(_salaryStatus!['attendance']['days_not_worked'] ?? 0) - (_salaryStatus!['attendance']['days_justified'] ?? 0)} jours',
+            deductions['absence_deduction'] ?? 0,
             Icons.cancel_rounded,
             const Color(0xFFD32F2F),
           ),
