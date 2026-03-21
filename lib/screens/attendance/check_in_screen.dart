@@ -62,7 +62,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.user;
 
-    if (user != null && (user.isVacataire() || user.isSemiPermanent())) {
+    if (user != null && (user.isVacataire() || user.isSemiPermanent() || user.isTitulaire())) {
       setState(() {
         _isLoadingUnites = true;
       });
@@ -137,7 +137,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
     final user = authProvider.user;
 
     // Si vacataire ou semi-permanent, vérifier qu'une UE est sélectionnée
-    if (user != null && (user.isVacataire() || user.isSemiPermanent())) {
+    if (user != null && (user.isVacataire() || user.isSemiPermanent() || user.isTitulaire())) {
       if (_selectedUnite == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

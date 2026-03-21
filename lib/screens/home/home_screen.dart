@@ -58,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _campuses = campusResult['campuses'];
     }
 
-    if (user != null && user.isVacataire()) {
+    if (user != null && (user.isVacataire() || user.isSemiPermanent() || user.isTitulaire())) {
       final ueResult = await _apiService.getUnitesEnseignement();
       if (ueResult['success']) {
         final data = ueResult['data'];
@@ -72,7 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
 
-    if (user != null && (user.isVacataire() || user.isSemiPermanent())) {
+    if (user != null && (user.isVacataire() || user.isSemiPermanent() || user.isTitulaire())) {
       final scheduleResult = await _apiService.getTodaySchedule();
       if (scheduleResult['success']) {
         _todaySchedule = List<Map<String, dynamic>>.from(scheduleResult['data'] ?? []);
@@ -164,13 +164,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
 
                         // Emploi du temps du jour
-                        if (user != null && (user.isVacataire() || user.isSemiPermanent())) ...[
+                        if (user != null && (user.isVacataire() || user.isSemiPermanent() || user.isTitulaire())) ...[
                           _buildTodayScheduleSection(),
                           const SizedBox(height: 20),
                         ],
 
-                        // Section UE pour vacataires
-                        if (user != null && user.isVacataire()) ...[
+                        // Section UE pour enseignants
+                        if (user != null && (user.isVacataire() || user.isSemiPermanent() || user.isTitulaire())) ...[
                           _buildUESection(),
                           const SizedBox(height: 20),
                         ],
