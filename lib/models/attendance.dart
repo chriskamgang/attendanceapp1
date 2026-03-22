@@ -41,7 +41,7 @@ class Attendance {
       campusId: json['campus_id'],
       uniteEnseignementId: json['unite_enseignement_id'],
       type: json['type'] ?? 'check-in',
-      timestamp: DateTime.parse(json['timestamp']),
+      timestamp: DateTime.parse(json['timestamp']).toLocal(),
       latitude: double.parse(json['latitude'].toString()),
       longitude: double.parse(json['longitude'].toString()),
       accuracy: json['accuracy'] != null

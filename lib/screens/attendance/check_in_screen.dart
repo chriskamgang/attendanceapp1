@@ -136,9 +136,10 @@ class _CheckInScreenState extends State<CheckInScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.user;
 
-    // Si vacataire ou semi-permanent, vérifier qu'une UE est sélectionnée
-    if (user != null && (user.isVacataire() || user.isSemiPermanent() || user.isTitulaire())) {
-      if (_selectedUnite == null) {
+    // Vérifier la sélection d'UE selon le type d'employé
+    if (user != null && _selectedUnite == null) {
+      if (user.isVacataire()) {
+        // Vacataires : UE toujours obligatoire
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Veuillez sélectionner une unité d\'enseignement'),
@@ -146,7 +147,17 @@ class _CheckInScreenState extends State<CheckInScreen> {
           ),
         );
         return;
+      } else if ((user.isSemiPermanent() || user.isTitulaire()) && _unitesDisponibles.isNotEmpty) {
+        // Semi-permanents et titulaires : obligatoire seulement s'il y a des UEs programmées
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Vous avez un cours programmé. Veuillez sélectionner l\'UE correspondante.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
       }
+      // Sinon (pas de cours programmé ou autre type) : check-in normal sans UE
     }
 
     final attendanceProvider =
@@ -392,9 +403,10 @@ class _CheckInScreenState extends State<CheckInScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Sélecteur d'UE pour les vacataires et semi-permanents
+                  // Sélecteur d'UE pour les enseignants (vacataires, semi-permanents, titulaires)
                   if (Provider.of<AuthProvider>(context, listen: false).user?.isVacataire() == true ||
-                      Provider.of<AuthProvider>(context, listen: false).user?.isSemiPermanent() == true) ...[
+                      Provider.of<AuthProvider>(context, listen: false).user?.isSemiPermanent() == true ||
+                      Provider.of<AuthProvider>(context, listen: false).user?.isTitulaire() == true) ...[
                     _buildUESelector(),
                     const SizedBox(height: 24),
                   ],

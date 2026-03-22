@@ -404,7 +404,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Divider(height: 1),
         ),
         _buildBreakdownRow('Montant Brut', _formatCurrency(salary['gross_salary']), Colors.grey[700]!),
-        _buildBreakdownRow('Retards', '${lateness['total_late_minutes']} min', Colors.orange[700]!),
         _buildBreakdownRow('Déductions', '-${_formatCurrency(salary['total_deductions'])}', Colors.red[600]!),
       ],
     );
@@ -416,13 +415,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final attendance = _salaryStatus!['attendance'];
     final lateness = _salaryStatus!['lateness'];
 
+    final totalHours = attendance['total_hours_worked'] ?? 0;
+    final hoursDisplay = totalHours is num ? '${totalHours.toStringAsFixed(1)}h' : '${totalHours}h';
+
     return _buildSection(
       title: 'État du Salaire',
       icon: Icons.account_balance_wallet_rounded,
       iconColor: const Color(0xFF2E7D32),
       children: [
         _buildBreakdownRow('Salaire Brut', _formatCurrency(salary['gross_salary']), Colors.grey[700]!),
-        _buildBreakdownRow('Jours Travaillés', '${attendance['days_worked']} jours', const Color(0xFF1565C0)),
+        _buildBreakdownRow('Heures Travaillées', hoursDisplay, const Color(0xFF00897B)),
+        _buildBreakdownRow('Jours Travaillés', '${(attendance['days_worked'] is num ? (attendance['days_worked'] as num).toStringAsFixed(2) : attendance['days_worked'])} jours', const Color(0xFF1565C0)),
         _buildBreakdownRow('Retards', '${lateness['total_late_minutes']} min', Colors.orange[700]!),
         _buildBreakdownRow('Déductions', '-${_formatCurrency(salary['total_deductions'])}', Colors.red[600]!),
       ],
@@ -485,6 +488,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ===== STANDARD ATTENDANCE =====
   Widget _buildAttendance() {
     final attendance = _salaryStatus!['attendance'];
+    final totalHours = attendance['total_hours_worked'] ?? 0;
+    final hoursStr = totalHours is num ? totalHours.toStringAsFixed(1) : '$totalHours';
+    final daysWorked = attendance['days_worked'];
+    final daysStr = daysWorked is num ? daysWorked.toStringAsFixed(1) : '$daysWorked';
 
     return _buildSection(
       title: 'Statistiques de Présence',
@@ -504,19 +511,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(width: 10),
             Expanded(
               child: _buildMiniStat(
-                '${attendance['days_worked']}',
-                'Travaillés',
-                Icons.check_circle_rounded,
-                const Color(0xFF2E7D32),
+                '${hoursStr}h',
+                'Heures',
+                Icons.access_time_filled_rounded,
+                const Color(0xFF00897B),
               ),
             ),
             const SizedBox(width: 10),
             Expanded(
               child: _buildMiniStat(
-                '${attendance['days_not_worked']}',
-                'Absences',
-                Icons.cancel_rounded,
-                const Color(0xFFD32F2F),
+                daysStr,
+                'Jours',
+                Icons.check_circle_rounded,
+                const Color(0xFF2E7D32),
               ),
             ),
             const SizedBox(width: 10),
@@ -544,13 +551,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       icon: Icons.receipt_long_rounded,
       iconColor: const Color(0xFFD32F2F),
       children: [
-        _buildDeductionTile(
-          'Retards',
-          '${lateness['total_late_minutes']} min',
-          deductions['late_penalty_amount'],
-          Icons.schedule_rounded,
-          const Color(0xFFF57C00),
-        ),
+        if (!_isVacataire) ...[
+          _buildDeductionTile(
+            'Retards',
+            '${lateness['total_late_minutes']} min',
+            deductions['late_penalty_amount'],
+            Icons.schedule_rounded,
+            const Color(0xFFF57C00),
+          ),
+        ],
         if (!_isVacataire) ...[
           const SizedBox(height: 8),
           _buildDeductionTile(

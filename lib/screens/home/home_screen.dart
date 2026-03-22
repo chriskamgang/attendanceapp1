@@ -26,6 +26,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic>? _ueStats;
   bool _isLoading = true;
   List<Map<String, dynamic>> _todaySchedule = [];
+  bool _isOnBreak = false;
+  String? _breakStartTime;
+  int _breakElapsedMinutes = 0;
+  bool _breakLoading = false;
 
   // Couleurs du thème
   static const Color _primaryDark = Color(0xFF1A237E);
@@ -82,6 +86,17 @@ class _HomeScreenState extends State<HomeScreen> {
     final attendanceProvider =
         Provider.of<AttendanceProvider>(context, listen: false);
     await attendanceProvider.checkCurrentStatus();
+
+    // Charger le statut de pause
+    final breakResult = await _apiService.getBreakStatus();
+    if (breakResult['success'] == true) {
+      final breakData = breakResult['data'];
+      _isOnBreak = breakData['on_break'] ?? false;
+      if (_isOnBreak && breakData['active_break'] != null) {
+        _breakStartTime = breakData['active_break']['break_start'];
+        _breakElapsedMinutes = breakData['active_break']['elapsed_minutes'] ?? 0;
+      }
+    }
 
     setState(() {
       _isLoading = false;
@@ -149,6 +164,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         // Check-in status card
                         _buildCheckInStatus(attendanceProvider),
                         const SizedBox(height: 16),
+
+                        // Boutons de pause (uniquement si check-in actif)
+                        if (attendanceProvider.hasActiveCheckIn)
+                          _buildBreakSection(user),
+                        if (attendanceProvider.hasActiveCheckIn)
+                          const SizedBox(height: 16),
 
                         // Vérifications en attente
                         if (_dashboardData != null &&
@@ -372,6 +393,167 @@ class _HomeScreenState extends State<HomeScreen> {
                     blurRadius: 6,
                   ),
                 ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _startBreak() async {
+    setState(() => _breakLoading = true);
+    final result = await _apiService.startBreak();
+    if (result['success'] == true) {
+      setState(() {
+        _isOnBreak = true;
+        _breakStartTime = result['data']?['break_start'];
+        _breakElapsedMinutes = 0;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pause commencée. Bon appétit !'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Erreur'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+    setState(() => _breakLoading = false);
+  }
+
+  Future<void> _endBreak() async {
+    setState(() => _breakLoading = true);
+    final result = await _apiService.endBreak();
+    if (result['success'] == true) {
+      final duration = result['data']?['duration_minutes'] ?? 0;
+      setState(() {
+        _isOnBreak = false;
+        _breakStartTime = null;
+        _breakElapsedMinutes = 0;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Bon retour ! Pause de ${duration} minutes.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Erreur'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+    setState(() => _breakLoading = false);
+  }
+
+  Widget _buildBreakSection(user) {
+    // Pause uniquement pour le personnel permanent (pas les vacataires)
+    if (user == null || !['semi_permanent', 'enseignant_titulaire', 'administratif', 'technique', 'direction'].contains(user.employeeType)) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: (_isOnBreak ? Colors.orange : Colors.brown).withValues(alpha: 0.12),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: _isOnBreak
+                        ? Colors.orange.withValues(alpha: 0.1)
+                        : Colors.brown.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    _isOnBreak ? Icons.timer_rounded : Icons.restaurant_rounded,
+                    color: _isOnBreak ? Colors.orange[700] : Colors.brown[600],
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _isOnBreak ? 'En pause' : 'Pause déjeuner',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: _isOnBreak ? Colors.orange[800] : Colors.brown[800],
+                        ),
+                      ),
+                      if (_isOnBreak && _breakStartTime != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          'Depuis $_breakStartTime',
+                          style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: ElevatedButton.icon(
+                onPressed: _breakLoading ? null : (_isOnBreak ? _endBreak : _startBreak),
+                icon: _breakLoading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : Icon(
+                        _isOnBreak ? Icons.arrow_back_rounded : Icons.coffee_rounded,
+                        size: 20,
+                      ),
+                label: Text(
+                  _isOnBreak ? 'Retour de pause' : 'Prendre ma pause',
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _isOnBreak ? Colors.green[600] : Colors.orange[700],
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
               ),
             ),
           ],
@@ -672,6 +854,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildUESection() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final user = authProvider.user;
+    final isVacataire = user?.isVacataire() ?? false;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -720,7 +906,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
-                if (_ueStats != null) ...[
+                // Stats heures/montant uniquement pour les vacataires (payés à l'heure)
+                if (_ueStats != null && isVacataire) ...[
                   const SizedBox(height: 16),
                   Row(
                     children: [

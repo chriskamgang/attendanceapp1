@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'location_service.dart';
 import 'storage_service.dart';
+import 'firebase_notification_service.dart';
 import '../utils/constants.dart';
 
 /// Service de suivi de localisation en temps réel
@@ -112,6 +114,11 @@ class LocationTrackingService {
           final inCampus = data['data']?['in_campus'];
           if (inCampus != null) {
             print('  → Dans le campus: ${inCampus['name']}');
+            // Afficher notification check-in disponible
+            await _showCheckInNotificationIfNeeded(
+              inCampus['name'] ?? 'Campus',
+              inCampus['id'] ?? 0,
+            );
           } else {
             print('  → Hors zone campus');
           }
@@ -141,6 +148,33 @@ class LocationTrackingService {
       print('✓ Position désactivée sur le serveur');
     } catch (e) {
       print('❌ Erreur lors de la désactivation: $e');
+    }
+  }
+
+  /// Afficher la notification de check-in si pas déjà fait aujourd'hui pour ce campus
+  static Future<void> _showCheckInNotificationIfNeeded(String campusName, int campusId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final today = DateTime.now().toIso8601String().substring(0, 10);
+      final key = 'checkin_notif_${campusId}_$today';
+
+      // Vérifier si on a déjà envoyé cette notification aujourd'hui pour ce campus
+      if (prefs.getBool(key) == true) {
+        return;
+      }
+
+      // Afficher la notification
+      final notificationService = FirebaseNotificationService();
+      await notificationService.showCheckInAvailableNotification(
+        campusName: campusName,
+        campusId: int.tryParse(campusId.toString()) ?? 0,
+      );
+
+      // Marquer comme envoyé pour aujourd'hui
+      await prefs.setBool(key, true);
+      print('  → Notification check-in envoyée pour $campusName');
+    } catch (e) {
+      print('  → Erreur notification check-in: $e');
     }
   }
 

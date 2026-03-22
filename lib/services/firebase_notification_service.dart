@@ -90,6 +90,21 @@ class FirebaseNotificationService {
   /// Récupérer le token FCM
   Future<void> _getFCMToken() async {
     try {
+      // Sur iOS, attendre que le token APNS soit disponible
+      String? apnsToken = await firebaseMessaging.getAPNSToken();
+      if (apnsToken == null) {
+        print('⏳ APNS token not ready, waiting...');
+        // Attendre et réessayer jusqu'à 3 fois
+        for (int i = 0; i < 3; i++) {
+          await Future.delayed(const Duration(seconds: 3));
+          apnsToken = await firebaseMessaging.getAPNSToken();
+          if (apnsToken != null) {
+            print('✓ APNS token received after ${(i + 1) * 3}s');
+            break;
+          }
+        }
+      }
+
       _fcmToken = await firebaseMessaging.getToken();
       print('FCM Token: $_fcmToken');
 
@@ -291,6 +306,51 @@ class FirebaseNotificationService {
         'type': 'presence_check',
         'incident_id': incidentId,
         'campus_name': campusName,
+      }),
+    );
+  }
+
+  /// Afficher une notification "Check-in disponible" quand l'employé entre dans la zone
+  Future<void> showCheckInAvailableNotification({
+    required String campusName,
+    required int campusId,
+  }) async {
+    const AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails(
+      'checkin_available_channel',
+      'Check-in Disponible',
+      channelDescription: 'Notifications quand vous êtes dans la zone de check-in',
+      importance: Importance.max,
+      priority: Priority.high,
+      showWhen: true,
+      enableVibration: true,
+      playSound: true,
+      category: AndroidNotificationCategory.reminder,
+      visibility: NotificationVisibility.public,
+    );
+
+    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+      interruptionLevel: InterruptionLevel.timeSensitive,
+    );
+
+    const NotificationDetails notificationDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _localNotifications.show(
+      campusId + 10000, // ID unique basé sur le campus
+      'Pointage disponible',
+      'Vous êtes à $campusName. Vous pouvez faire votre check-in maintenant !',
+      notificationDetails,
+      payload: jsonEncode({
+        'type': 'geofence_entry',
+        'campus_id': campusId,
+        'campus_name': campusName,
+        'action': 'check_in',
       }),
     );
   }

@@ -2,6 +2,7 @@ import 'package:geofence_service/geofence_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/campus.dart';
 import '../services/api_service.dart';
+import '../services/firebase_notification_service.dart';
 
 class GeofencingService {
   static final GeofencingService _instance = GeofencingService._internal();
@@ -86,15 +87,16 @@ class GeofencingService {
     print('   Status: $geofenceStatus');
     print('   Location: (${location.latitude}, ${location.longitude})');
 
-    // Gérer uniquement les événements ENTER
-    if (geofenceStatus == GeofenceStatus.ENTER) {
+    // Gérer les événements ENTER et DWELL (DWELL = déjà dans la zone au démarrage)
+    if (geofenceStatus == GeofenceStatus.ENTER || geofenceStatus == GeofenceStatus.DWELL) {
       final campusId = _extractCampusIdFromGeofenceId(geofence.id);
       final campus = _campuses.firstWhere(
         (c) => c.id == campusId,
         orElse: () => _campuses.first,
       );
 
-      print('🚶 Entrée détectée dans ${campus.name}');
+      final statusLabel = geofenceStatus == GeofenceStatus.ENTER ? 'Entrée' : 'Présence';
+      print('🚶 $statusLabel détectée dans ${campus.name}');
       await _handleGeofenceEntry(campus);
     }
   }
@@ -120,7 +122,7 @@ class GeofencingService {
     return int.parse(geofenceId.split('_')[1]);
   }
 
-  /// Gérer l'entrée dans une zone (envoyer notification)
+  /// Gérer l'entrée dans une zone (afficher notification de check-in)
   Future<void> _handleGeofenceEntry(Campus campus) async {
     try {
       // Vérifier le cooldown local (ne pas spammer)
@@ -129,44 +131,49 @@ class GeofencingService {
         return;
       }
 
-      // Appeler l'API backend
-      final result = await _apiService.sendGeofenceEntry(campus.id);
+      // Afficher une notification locale pour inviter au check-in
+      final notificationService = FirebaseNotificationService();
+      await notificationService.showCheckInAvailableNotification(
+        campusName: campus.name,
+        campusId: campus.id,
+      );
 
-      if (result['success'] == true) {
-        print('✅ Notification géofencing envoyée pour ${campus.name}');
+      print('✅ Notification check-in disponible affichée pour ${campus.name}');
 
-        // Sauvegarder le timestamp local
-        await _saveCooldownTimestamp(campus.id);
+      // Sauvegarder le timestamp local
+      await _saveCooldownTimestamp(campus.id);
 
-        // La notification FCM sera gérée par Firebase automatiquement
-      } else {
-        print('⚠️ Backend: ${result['message']}');
+      // Notifier aussi le backend
+      try {
+        await _apiService.sendGeofenceEntry(campus.id);
+      } catch (e) {
+        print('⚠️ Erreur envoi geofence au backend: $e');
       }
     } catch (e) {
       print('❌ Erreur handleGeofenceEntry: $e');
     }
   }
 
-  /// Vérifier si on est en cooldown pour un campus
+  /// Vérifier si on est en cooldown pour un campus (1 notification par jour par campus)
   Future<bool> _isInCooldown(int campusId) async {
     final prefs = await SharedPreferences.getInstance();
-    final key = 'geofence_cooldown_campus_$campusId';
-    final lastTimestamp = prefs.getInt(key);
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final key = 'geofence_cooldown_campus_${campusId}_$today';
+    final alreadySent = prefs.getBool(key) ?? false;
 
-    if (lastTimestamp == null) return false;
+    if (alreadySent) {
+      print('⏰ Notification déjà envoyée aujourd\'hui pour campus $campusId');
+    }
 
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final cooldownMinutes = 360; // 6 heures par défaut
-    final cooldownMs = cooldownMinutes * 60 * 1000;
-
-    return (now - lastTimestamp) < cooldownMs;
+    return alreadySent;
   }
 
-  /// Sauvegarder le timestamp du cooldown
+  /// Sauvegarder le cooldown (1 par jour par campus)
   Future<void> _saveCooldownTimestamp(int campusId) async {
     final prefs = await SharedPreferences.getInstance();
-    final key = 'geofence_cooldown_campus_$campusId';
-    await prefs.setInt(key, DateTime.now().millisecondsSinceEpoch);
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final key = 'geofence_cooldown_campus_${campusId}_$today';
+    await prefs.setBool(key, true);
   }
 
   /// Mettre à jour les geofences quand les campus changent

@@ -822,6 +822,64 @@ class ApiService {
     }
   }
 
+  // ========== PAUSE DÉJEUNER ==========
+
+  /// Démarrer la pause
+  Future<Map<String, dynamic>> startBreak() async {
+    try {
+      final url = '${ApiConstants.baseUrl}/break/start';
+      final token = await _storageService.getToken();
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      return json.decode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  /// Terminer la pause
+  Future<Map<String, dynamic>> endBreak() async {
+    try {
+      final url = '${ApiConstants.baseUrl}/break/end';
+      final token = await _storageService.getToken();
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      return json.decode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  /// Statut de la pause
+  Future<Map<String, dynamic>> getBreakStatus() async {
+    try {
+      final url = '${ApiConstants.baseUrl}/break/status';
+      final token = await _storageService.getToken();
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      return json.decode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
   // ========== GÉOFENCING ==========
 
   /// Envoyer un événement d'entrée en zone géographique
