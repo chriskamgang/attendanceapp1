@@ -1,6 +1,6 @@
 class ApiConstants {
   // CONFIGURATION - Changer selon l'environnement
-  static const bool isLocal = true; // Mettre false pour production
+  static const bool isLocal = false; // Mettre false pour production
 
   // Base URLs
   // Pour iOS Simulator: utilisez 127.0.0.1 ou localhost

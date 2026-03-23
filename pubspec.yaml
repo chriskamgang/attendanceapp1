@@ -78,6 +78,8 @@ dependencies:
   # UI Components
   flutter_spinkit: ^5.2.0
   fluttertoast: ^8.2.4
+  open_filex: ^4.7.0
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:

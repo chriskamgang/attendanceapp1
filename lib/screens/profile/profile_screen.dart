@@ -1,7 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:dio/dio.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
+import '../../services/storage_service.dart';
+import '../../utils/constants.dart';
 import 'package:intl/intl.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -96,6 +102,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  bool _isDownloading = false;
+
+  Future<void> _downloadPayslip() async {
+    if (_isDownloading) return;
+    setState(() => _isDownloading = true);
+
+    try {
+      final token = await StorageService().getToken();
+      if (token == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Session expirée, veuillez vous reconnecter')),
+          );
+        }
+        return;
+      }
+
+      final dir = await getTemporaryDirectory();
+      final fileName = 'fiche-paie-${_selectedMonth.month}-${_selectedMonth.year}.pdf';
+      final filePath = '${dir.path}/$fileName';
+
+      final dio = Dio();
+      final url = '${ApiConstants.baseUrl}/user/payslip?month=${_selectedMonth.month}&year=${_selectedMonth.year}';
+
+      await dio.download(
+        url,
+        filePath,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/pdf',
+          },
+        ),
+      );
+
+      if (!mounted) return;
+
+      final result = await OpenFilex.open(filePath);
+      if (result.type != ResultType.done && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Impossible d\'ouvrir le fichier: ${result.message}')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur lors du téléchargement: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isDownloading = false);
+    }
+  }
+
   Future<void> _logout() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     await authProvider.logout();
@@ -156,6 +216,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 16),
                         // Month selector
                         _buildMonthSelector(),
+                        const SizedBox(height: 12),
+
+                        // Download payslip button
+                        _buildDownloadPayslipButton(),
                         const SizedBox(height: 16),
 
                         if (_salaryStatus != null) ...[
@@ -173,6 +237,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                           // Deductions
                           _buildDeductions(),
+
+                          // UE Breakdown (détail par UE) for vacataires
+                          if (_isVacataire && _salaryStatus!['ue_breakdown'] != null &&
+                              (_salaryStatus!['ue_breakdown'] as List).isNotEmpty) ...[
+                            const SizedBox(height: 16),
+                            _buildUEBreakdown(),
+                          ],
 
                           // UE Summary for vacataires
                           if (_isVacataire && _salaryStatus!['ue_summary'] != null) ...[
@@ -381,6 +452,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey[400]),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ===== DOWNLOAD PAYSLIP BUTTON =====
+  Widget _buildDownloadPayslipButton() {
+    return GestureDetector(
+      onTap: _isDownloading ? null : _downloadPayslip,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [_primaryDark, _primaryLight],
+          ),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: _primaryDark.withValues(alpha: 0.25),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (_isDownloading)
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            else
+              const Icon(Icons.picture_as_pdf_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Text(
+              _isDownloading ? 'Téléchargement...' : 'Télécharger la Fiche de Paie',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
           ],
         ),
       ),
@@ -610,6 +729,130 @@ class _ProfileScreenState extends State<ProfileScreen> {
             (loan) => _buildLoanDetail(loan),
           ),
         ],
+      ],
+    );
+  }
+
+  // ===== UE BREAKDOWN (Détail par UE avec taux) =====
+  Widget _buildUEBreakdown() {
+    final ueBreakdown = _salaryStatus!['ue_breakdown'] as List;
+    if (ueBreakdown.isEmpty) return const SizedBox.shrink();
+
+    return _buildSection(
+      title: 'Détail par UE',
+      icon: Icons.receipt_long_rounded,
+      iconColor: const Color(0xFF1565C0),
+      children: [
+        ...ueBreakdown.map((ue) {
+          final niveau = ue['niveau'] ?? '';
+          final taux = ue['taux_horaire'] ?? 0;
+          final heures = ue['heures'] ?? 0;
+          final montant = ue['montant'] ?? 0;
+          final nomMatiere = ue['nom_matiere'] ?? 'N/A';
+          final codeUe = ue['code_ue'];
+
+          // Couleur selon le niveau
+          final Color niveauColor;
+          if (niveau.toString().toLowerCase().contains('licence')) {
+            niveauColor = const Color(0xFF1565C0);
+          } else if (niveau.toString().toLowerCase().contains('master')) {
+            niveauColor = const Color(0xFF7B1FA2);
+          } else {
+            niveauColor = const Color(0xFF00897B);
+          }
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: niveauColor.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: niveauColor.withValues(alpha: 0.12)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: niveauColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        niveau.toString().isNotEmpty ? niveau.toString() : 'BTS',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: niveauColor,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        codeUe != null ? '$codeUe - $nomMatiere' : nomMatiere,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Taux: ${_formatCurrency(taux)}/h',
+                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                    ),
+                    Text(
+                      '${_formatHours(heures)} travaillées',
+                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text(
+                      _formatCurrency(montant),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: niveauColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }),
+        // Total
+        const Divider(height: 20),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Total: ${_formatHours(ueBreakdown.fold<double>(0, (sum, ue) => sum + ((ue['heures'] ?? 0) is num ? (ue['heures'] as num).toDouble() : 0)))}',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              _formatCurrency(ueBreakdown.fold<double>(0, (sum, ue) => sum + ((ue['montant'] ?? 0) is num ? (ue['montant'] as num).toDouble() : 0))),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.green[700],
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
