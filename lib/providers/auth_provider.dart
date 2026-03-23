@@ -3,6 +3,7 @@ import '../models/user.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
 import '../services/device_service.dart';
+import '../services/firebase_notification_service.dart';
 
 class AuthProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -29,6 +30,8 @@ class AuthProvider with ChangeNotifier {
         if (savedUser != null) {
           _user = savedUser;
           _isAuthenticated = true;
+          // Renvoyer le token FCM au backend à chaque lancement
+          FirebaseNotificationService().resendTokenToBackend();
         }
       }
     } catch (e) {
@@ -61,6 +64,8 @@ class AuthProvider with ChangeNotifier {
         _isAuthenticated = true;
         _isLoading = false;
         notifyListeners();
+        // Envoyer le token FCM au backend après login
+        FirebaseNotificationService().resendTokenToBackend();
         return {'success': true};
       } else {
         _isLoading = false;

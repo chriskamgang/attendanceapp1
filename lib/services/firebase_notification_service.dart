@@ -123,14 +123,29 @@ class FirebaseNotificationService {
     }
   }
 
-  /// Envoyer le token au backend
+  /// Envoyer le token au backend (seulement si connecté)
   Future<void> _sendTokenToBackend(String token) async {
     try {
+      final storageService = StorageService();
+      final authToken = await storageService.getToken();
+      if (authToken == null || authToken.isEmpty) {
+        print('⏳ FCM token not sent: user not logged in yet');
+        return;
+      }
       final apiService = ApiService();
       await apiService.updateFcmToken(token);
       print('✓ FCM token sent to backend');
     } catch (e) {
       print('Error sending FCM token to backend: $e');
+    }
+  }
+
+  /// Forcer le renvoi du token FCM au backend (à appeler après login)
+  Future<void> resendTokenToBackend() async {
+    if (_fcmToken != null) {
+      await _sendTokenToBackend(_fcmToken!);
+    } else {
+      await _getFCMToken();
     }
   }
 
