@@ -825,7 +825,7 @@ class ApiService {
   // ========== PAUSE DÉJEUNER ==========
 
   /// Démarrer la pause
-  Future<Map<String, dynamic>> startBreak() async {
+  Future<Map<String, dynamic>> startBreak({required double latitude, required double longitude}) async {
     try {
       final url = '${ApiConstants.baseUrl}/break/start';
       final token = await _storageService.getToken();
@@ -836,6 +836,10 @@ class ApiService {
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
         },
+        body: json.encode({
+          'latitude': latitude,
+          'longitude': longitude,
+        }),
       );
       return json.decode(response.body);
     } catch (e) {
@@ -844,7 +848,7 @@ class ApiService {
   }
 
   /// Terminer la pause
-  Future<Map<String, dynamic>> endBreak() async {
+  Future<Map<String, dynamic>> endBreak({required double latitude, required double longitude}) async {
     try {
       final url = '${ApiConstants.baseUrl}/break/end';
       final token = await _storageService.getToken();
@@ -855,6 +859,10 @@ class ApiService {
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
         },
+        body: json.encode({
+          'latitude': latitude,
+          'longitude': longitude,
+        }),
       );
       return json.decode(response.body);
     } catch (e) {

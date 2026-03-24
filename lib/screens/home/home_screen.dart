@@ -5,6 +5,7 @@ import '../../providers/attendance_provider.dart';
 import '../../models/campus.dart';
 import '../../models/unite_enseignement.dart';
 import '../../services/api_service.dart';
+import '../../services/location_service.dart';
 import '../../widgets/unite_enseignement_card.dart';
 import '../../models/ue_schedule.dart';
 import '../attendance/check_in_screen.dart';
@@ -403,26 +404,56 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _startBreak() async {
     setState(() => _breakLoading = true);
-    final result = await _apiService.startBreak();
-    if (result['success'] == true) {
-      setState(() {
-        _isOnBreak = true;
-        _breakStartTime = result['data']?['break_start'];
-        _breakElapsedMinutes = 0;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Pause commencée. Bon appétit !'),
-            backgroundColor: Colors.green,
-          ),
-        );
+    try {
+      // Récupérer la position GPS
+      final locationService = LocationService();
+      final position = await locationService.getCurrentPosition();
+      if (position == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Impossible d\'obtenir votre position GPS.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        setState(() => _breakLoading = false);
+        return;
       }
-    } else {
+
+      final result = await _apiService.startBreak(
+        latitude: position.latitude,
+        longitude: position.longitude,
+      );
+      if (result['success'] == true) {
+        setState(() {
+          _isOnBreak = true;
+          _breakStartTime = result['data']?['break_start'];
+          _breakElapsedMinutes = 0;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Pause commencée. Bon appétit !'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Erreur'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result['message'] ?? 'Erreur'),
+            content: Text('Erreur: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -433,27 +464,57 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _endBreak() async {
     setState(() => _breakLoading = true);
-    final result = await _apiService.endBreak();
-    if (result['success'] == true) {
-      final duration = result['data']?['duration_minutes'] ?? 0;
-      setState(() {
-        _isOnBreak = false;
-        _breakStartTime = null;
-        _breakElapsedMinutes = 0;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Bon retour ! Pause de ${duration} minutes.'),
-            backgroundColor: Colors.green,
-          ),
-        );
+    try {
+      // Récupérer la position GPS
+      final locationService = LocationService();
+      final position = await locationService.getCurrentPosition();
+      if (position == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Impossible d\'obtenir votre position GPS.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        setState(() => _breakLoading = false);
+        return;
       }
-    } else {
+
+      final result = await _apiService.endBreak(
+        latitude: position.latitude,
+        longitude: position.longitude,
+      );
+      if (result['success'] == true) {
+        final duration = result['data']?['duration_minutes'] ?? 0;
+        setState(() {
+          _isOnBreak = false;
+          _breakStartTime = null;
+          _breakElapsedMinutes = 0;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Bon retour ! Pause de ${duration} minutes.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Erreur'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result['message'] ?? 'Erreur'),
+            content: Text('Erreur: $e'),
             backgroundColor: Colors.red,
           ),
         );
