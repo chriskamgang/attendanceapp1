@@ -9,11 +9,11 @@ class DeviceService {
     try {
       if (Platform.isAndroid) {
         AndroidDeviceInfo androidInfo = await _deviceInfo.androidInfo;
-        // Utiliser l'androidId comme identifiant unique
-        return androidInfo.id ?? 'unknown_android';
+        // fingerprint est unique par appareil (contient marque/modèle/serial/build)
+        return androidInfo.fingerprint;
       } else if (Platform.isIOS) {
         IosDeviceInfo iosInfo = await _deviceInfo.iosInfo;
-        // Utiliser l'identifierForVendor comme identifiant unique
+        // identifierForVendor est unique par appareil par vendor
         return iosInfo.identifierForVendor ?? 'unknown_ios';
       }
       return 'unknown_platform';
