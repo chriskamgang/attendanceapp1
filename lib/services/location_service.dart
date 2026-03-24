@@ -20,7 +20,7 @@ class LocationService {
         permission == LocationPermission.whileInUse;
   }
 
-  // Obtenir la position actuelle
+  // Obtenir la position actuelle avec meilleure précision
   Future<Position?> getCurrentPosition() async {
     try {
       // Vérifier si le service est activé
@@ -38,11 +38,26 @@ class LocationService {
         }
       }
 
-      // Obtenir la position
+      // Obtenir la position avec haute précision
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        desiredAccuracy: LocationAccuracy.best,
+        timeLimit: const Duration(seconds: 15),
       );
 
+      // Si la précision est mauvaise (>100m), réessayer une fois
+      if (position.accuracy > 100) {
+        print('GPS précision faible (${position.accuracy}m), nouvel essai...');
+        await Future.delayed(const Duration(seconds: 2));
+        Position retry = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.best,
+          timeLimit: const Duration(seconds: 10),
+        );
+        if (retry.accuracy < position.accuracy) {
+          position = retry;
+        }
+      }
+
+      print('GPS: ${position.latitude}, ${position.longitude} (précision: ${position.accuracy}m)');
       return position;
     } catch (e) {
       print('Erreur lors de l\'obtention de la position: $e');
