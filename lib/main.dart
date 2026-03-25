@@ -13,6 +13,7 @@ import 'services/firebase_notification_service.dart';
 import 'services/geofencing_service.dart';
 import 'services/deep_link_service.dart';
 import 'services/api_service.dart';
+import 'services/update_service.dart';
 import 'models/campus.dart';
 
 void main() async {
@@ -189,8 +190,13 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkAuth() async {
-    // Vérifier l'authentification rapidement
     try {
+      // Vérifier les mises à jour AVANT tout
+      if (mounted) {
+        await UpdateService().checkForUpdate(context);
+      }
+
+      // Vérifier l'authentification
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       await authProvider.checkAuth();
 

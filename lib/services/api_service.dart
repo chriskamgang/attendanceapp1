@@ -27,6 +27,24 @@ class ApiService {
     return headers;
   }
 
+  // ========== UPDATE CHECK ==========
+
+  Future<Map<String, dynamic>> checkUpdate(String platform) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.checkUpdate}?platform=$platform'),
+        headers: {'Accept': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        return {'success': true, ...json.decode(response.body)};
+      }
+      return {'success': false};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur réseau: $e'};
+    }
+  }
+
   // ========== AUTH ==========
 
   Future<Map<String, dynamic>> login(

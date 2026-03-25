@@ -48,10 +48,14 @@ class ApiConstants {
   static const String mySchedule = '/emploi-du-temps/mon-emploi';
   static const String todaySchedule = '/emploi-du-temps/aujourdhui';
   static const String uesAvailableNow = '/emploi-du-temps/ues-disponibles-maintenant';
+
+  // Mise à jour
+  static const String checkUpdate = '/check-update';
 }
 
 class AppConstants {
   static const String appName = 'IUEs/INSAM PRE';
+  static const String appVersion = '2.0.0';
   static const String tokenKey = 'auth_token';
   static const String userKey = 'user_data';
 
