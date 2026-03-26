@@ -84,6 +84,20 @@ class AuthProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
+    // Supprimer le token FCM côté serveur AVANT de supprimer le token d'auth
+    try {
+      await _apiService.removeFcmToken();
+    } catch (e) {
+      print('Erreur suppression FCM token: $e');
+    }
+
+    // Supprimer le token FCM côté Firebase
+    try {
+      await FirebaseNotificationService().unsubscribe();
+    } catch (e) {
+      print('Erreur unsubscribe Firebase: $e');
+    }
+
     await _apiService.logout();
     _user = null;
     _isAuthenticated = false;

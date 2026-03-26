@@ -400,6 +400,23 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>> removeFcmToken() async {
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConstants.baseUrl}/user/remove-fcm-token'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+
+      if (response.statusCode == 200) {
+        return {'success': true};
+      } else {
+        return {'success': false, 'message': 'Erreur de suppression'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur réseau: $e'};
+    }
+  }
+
   // ========== SALARY STATUS ==========
 
   Future<Map<String, dynamic>> getSalaryStatus({int? month, int? year}) async {

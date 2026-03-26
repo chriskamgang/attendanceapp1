@@ -145,7 +145,24 @@ class FirebaseNotificationService {
     if (_fcmToken != null) {
       await _sendTokenToBackend(_fcmToken!);
     } else {
+      // Token null — réessayer de l'obtenir (important pour iOS)
       await _getFCMToken();
+    }
+
+    // Si toujours null après _getFCMToken (iOS peut être lent), retry en arrière-plan
+    if (_fcmToken == null) {
+      Future.delayed(const Duration(seconds: 5), () async {
+        try {
+          final token = await firebaseMessaging.getToken();
+          if (token != null) {
+            _fcmToken = token;
+            print('✓ FCM token obtained on delayed retry: $token');
+            await _sendTokenToBackend(token);
+          }
+        } catch (e) {
+          print('Error on delayed FCM token retry: $e');
+        }
+      });
     }
   }
 
