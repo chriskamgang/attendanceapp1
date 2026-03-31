@@ -876,6 +876,51 @@ class ApiService {
     }
   }
 
+  // ========== AVANCES SUR SALAIRE ==========
+
+  Future<Map<String, dynamic>> getSalaryAdvances() async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.salaryAdvances}'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {'success': true, 'data': data['data'] ?? []};
+      } else {
+        return {'success': false, 'message': 'Erreur de chargement'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur reseau: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> requestSalaryAdvance({
+    required int amount,
+    required String reason,
+  }) async {
+    try {
+      final response = await _post(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.salaryAdvances}'),
+        headers: await _getHeaders(includeAuth: true),
+        body: json.encode({
+          'amount': amount,
+          'reason': reason,
+        }),
+      );
+
+      final data = json.decode(response.body);
+      if (response.statusCode == 201) {
+        return {'success': true, 'message': data['message'], 'data': data['data']};
+      } else {
+        return {'success': false, 'message': data['message'] ?? 'Erreur'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur reseau: $e'};
+    }
+  }
+
   // ========== TACHES (Tasks) ==========
 
   Future<Map<String, dynamic>> getMyTasks() async {
