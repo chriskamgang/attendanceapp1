@@ -167,6 +167,56 @@ class _TaskListScreenState extends State<TaskListScreen> {
               ),
               const SizedBox(height: 16),
 
+              // Penalty warning
+              if (task.hasPenalty) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: task.penaltyApproved ? Colors.red[50] : Colors.orange[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: task.penaltyApproved ? Colors.red[200]! : Colors.orange[200]!,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        task.penaltyApproved ? Icons.warning : Icons.info_outline,
+                        color: task.penaltyApproved ? Colors.red : Colors.orange,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              task.penaltyApproved
+                                  ? 'Coupure approuvee: ${task.formattedPenalty}'
+                                  : 'Penalite si non faite: ${task.formattedPenalty}',
+                              style: TextStyle(
+                                color: task.penaltyApproved ? Colors.red[800] : Colors.orange[800],
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                            if (task.penaltyApproved)
+                              Text(
+                                'Ce montant sera deduit de votre salaire',
+                                style: TextStyle(
+                                  color: Colors.red[600],
+                                  fontSize: 11,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
               // Details
               if (task.description != null && task.description!.isNotEmpty) ...[
                 const Text(
@@ -499,6 +549,23 @@ class _TaskListScreenState extends State<TaskListScreen> {
                               color: Colors.grey[600],
                             ),
                           ),
+                          if (task.hasPenalty) ...[
+                            const SizedBox(width: 12),
+                            Icon(
+                              Icons.monetization_on,
+                              size: 12,
+                              color: task.penaltyApproved ? Colors.red : Colors.orange,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              task.formattedPenalty,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: task.penaltyApproved ? Colors.red : Colors.orange,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                           if (task.dueDate != null) ...[
                             const SizedBox(width: 12),
                             Icon(

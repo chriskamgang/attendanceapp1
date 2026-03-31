@@ -4,9 +4,11 @@ class Task {
   final String? description;
   final String priority; // low, medium, high
   final String status; // pending, in_progress, completed, cancelled
+  final int penaltyAmount; // montant de la pénalité en FCFA
   final String myStatus; // pivot: pending, in_progress, completed
   final String? myNote;
   final DateTime? completedAt;
+  final bool penaltyApproved;
   final DateTime? dueDate;
   final String? creatorName;
   final DateTime createdAt;
@@ -17,9 +19,11 @@ class Task {
     this.description,
     required this.priority,
     required this.status,
+    this.penaltyAmount = 0,
     required this.myStatus,
     this.myNote,
     this.completedAt,
+    this.penaltyApproved = false,
     this.dueDate,
     this.creatorName,
     required this.createdAt,
@@ -32,11 +36,13 @@ class Task {
       description: json['description'],
       priority: json['priority'] ?? 'medium',
       status: json['status'] ?? 'pending',
+      penaltyAmount: json['penalty_amount'] ?? 0,
       myStatus: json['my_status'] ?? 'pending',
       myNote: json['my_note'],
       completedAt: json['completed_at'] != null
           ? DateTime.parse(json['completed_at']).toLocal()
           : null,
+      penaltyApproved: json['penalty_approved'] ?? false,
       dueDate: json['due_date'] != null
           ? DateTime.parse(json['due_date'])
           : null,
@@ -49,6 +55,11 @@ class Task {
       dueDate != null &&
       dueDate!.isBefore(DateTime.now()) &&
       myStatus != 'completed';
+
+  bool get hasPenalty => penaltyAmount > 0;
+
+  String get formattedPenalty =>
+      '${penaltyAmount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')} FCFA';
 
   String get priorityLabel {
     switch (priority) {
