@@ -9,8 +9,14 @@ class DeviceService {
     try {
       if (Platform.isAndroid) {
         AndroidDeviceInfo androidInfo = await _deviceInfo.androidInfo;
-        // fingerprint est unique par appareil (contient marque/modèle/serial/build)
-        return androidInfo.fingerprint;
+        // androidId (SSAID) est unique par appareil + signature d'app
+        // fingerprint n'est PAS unique (identique pour même modèle/version)
+        final androidId = androidInfo.id;
+        if (androidId.isNotEmpty && androidId != 'unknown') {
+          return androidId;
+        }
+        // Fallback: combiner serialNumber + fingerprint
+        return '${androidInfo.serialNumber}_${androidInfo.fingerprint}'.hashCode.toRadixString(16);
       } else if (Platform.isIOS) {
         IosDeviceInfo iosInfo = await _deviceInfo.iosInfo;
         // identifierForVendor est unique par appareil par vendor
