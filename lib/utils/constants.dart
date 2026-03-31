@@ -49,6 +49,9 @@ class ApiConstants {
   static const String todaySchedule = '/emploi-du-temps/aujourdhui';
   static const String uesAvailableNow = '/emploi-du-temps/ues-disponibles-maintenant';
 
+  // Tasks
+  static const String myTasks = '/tasks';
+
   // Mise à jour
   static const String checkUpdate = '/check-update';
 }

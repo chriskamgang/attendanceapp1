@@ -5,6 +5,7 @@ import '../../providers/attendance_provider.dart';
 import '../../models/campus.dart';
 import '../../models/unite_enseignement.dart';
 import '../../services/api_service.dart';
+import '../../models/task.dart';
 import '../../services/location_service.dart';
 import '../../widgets/unite_enseignement_card.dart';
 import '../../models/ue_schedule.dart';
@@ -31,6 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _breakStartTime;
   int _breakElapsedMinutes = 0;
   bool _breakLoading = false;
+  List<Task> _myTasks = [];
 
   // Couleurs du thème
   static const Color _primaryDark = Color(0xFF1A237E);
@@ -82,6 +84,14 @@ class _HomeScreenState extends State<HomeScreen> {
       if (scheduleResult['success']) {
         _todaySchedule = List<Map<String, dynamic>>.from(scheduleResult['data'] ?? []);
       }
+    }
+
+    // Charger les taches
+    final tasksResult = await _apiService.getMyTasks();
+    if (tasksResult['success']) {
+      _myTasks = (tasksResult['data'] as List)
+          .map((t) => Task.fromJson(t))
+          .toList();
     }
 
     final attendanceProvider =
@@ -176,6 +186,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         if (_dashboardData != null &&
                             _dashboardData!['pending_presence_checks'] > 0) ...[
                           _buildPendingChecks(),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // Taches assignees
+                        if (_myTasks.isNotEmpty) ...[
+                          _buildTasksPreview(),
                           const SizedBox(height: 16),
                         ],
 
@@ -690,6 +706,150 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTasksPreview() {
+    final pendingTasks = _myTasks.where((t) => t.myStatus != 'completed').take(3).toList();
+    if (pendingTasks.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: _primaryDark.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(Icons.task_alt, color: _primaryDark, size: 20),
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'Mes Taches',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${_myTasks.where((t) => t.myStatus != "completed").length} en cours',
+                    style: const TextStyle(
+                      color: Colors.orange,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          ...pendingTasks.map((task) => _buildTaskPreviewItem(task)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTaskPreviewItem(Task task) {
+    Color priorityColor;
+    switch (task.priority) {
+      case 'high':
+        priorityColor = Colors.red;
+        break;
+      case 'medium':
+        priorityColor = Colors.orange;
+        break;
+      default:
+        priorityColor = Colors.green;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 40,
+            decoration: BoxDecoration(
+              color: priorityColor,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  task.title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Text(
+                      task.myStatusLabel,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: task.myStatus == 'in_progress' ? Colors.blue : Colors.grey[600],
+                      ),
+                    ),
+                    if (task.dueDate != null) ...[
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.calendar_today,
+                        size: 11,
+                        color: task.isOverdue ? Colors.red : Colors.grey[500],
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        '${task.dueDate!.day}/${task.dueDate!.month}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: task.isOverdue ? Colors.red : Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

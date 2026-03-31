@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'home/home_screen.dart';
 import 'attendance/history_screen.dart';
 import 'profile/profile_screen.dart';
+import 'tasks/task_list_screen.dart';
 import '../services/geofencing_service.dart';
 import '../services/location_tracking_service.dart';
 import '../services/api_service.dart';
@@ -22,6 +23,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   final List<Widget> _screens = [
     const HomeScreen(),
     const HistoryScreen(),
+    const TaskListScreen(),
     const ProfileScreen(),
   ];
 
@@ -95,6 +97,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         children: _screens,
       ),
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
         currentIndex: _currentIndex,
         onTap: (index) {
           setState(() {
@@ -109,6 +112,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           BottomNavigationBarItem(
             icon: Icon(Icons.history),
             label: 'Historique',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.task_alt),
+            label: 'Taches',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),

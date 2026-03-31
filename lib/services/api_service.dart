@@ -876,6 +876,73 @@ class ApiService {
     }
   }
 
+  // ========== TACHES (Tasks) ==========
+
+  Future<Map<String, dynamic>> getMyTasks() async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.myTasks}'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {'success': true, 'data': data['data'] ?? []};
+      } else {
+        return {'success': false, 'message': 'Erreur de chargement des taches'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur reseau: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getTaskDetail(int taskId) async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.myTasks}/$taskId'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {'success': true, 'data': data['data']};
+      } else {
+        return {'success': false, 'message': 'Erreur de chargement'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur reseau: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> updateTaskStatus(int taskId, String status, {String? note}) async {
+    try {
+      final body = {
+        'status': status,
+        if (note != null) 'note': note,
+      };
+
+      final headers = await _getHeaders(includeAuth: true);
+      final response = await http.put(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.myTasks}/$taskId/status'),
+        headers: headers,
+        body: json.encode(body),
+      ).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => http.Response('{"message": "Delai depasse"}', 408),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {'success': true, 'message': data['message']};
+      } else {
+        final data = json.decode(response.body);
+        return {'success': false, 'message': data['message'] ?? 'Erreur'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur reseau: $e'};
+    }
+  }
+
   // ========== PAUSE DÉJEUNER ==========
 
   /// Démarrer la pause
