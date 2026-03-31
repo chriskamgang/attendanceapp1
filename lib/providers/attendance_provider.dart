@@ -54,22 +54,27 @@ class AttendanceProvider with ChangeNotifier {
         };
       }
 
-      // Vérifier si dans la zone
+      // Vérifier si dans la zone (avec tolérance GPS)
       bool inZone = _locationService.isInZone(
         userLat: position.latitude,
         userLon: position.longitude,
         zoneLat: campus.latitude,
         zoneLon: campus.longitude,
         radius: campus.radius.toDouble(),
+        accuracy: position.accuracy,
       );
 
       if (!inZone) {
+        double distance = _locationService.calculateDistance(
+          position.latitude, position.longitude,
+          campus.latitude, campus.longitude,
+        );
         _isLoading = false;
         notifyListeners();
         return {
           'success': false,
           'message':
-              'Vous n\'êtes pas dans la zone du campus (rayon: ${campus.radius}m)'
+              'Vous êtes à ${distance.round()}m du campus (rayon: ${campus.radius}m, précision GPS: ${position.accuracy.round()}m). Essayez de vous déplacer ou redémarrez le GPS.'
         };
       }
 
@@ -83,8 +88,8 @@ class AttendanceProvider with ChangeNotifier {
       );
 
       if (result['success']) {
-        await checkCurrentStatus();
-        await getTodayAttendances();
+        // Rafraîchir en parallèle pour plus de rapidité
+        await Future.wait([checkCurrentStatus(), getTodayAttendances()]);
       }
 
       _isLoading = false;
@@ -123,8 +128,8 @@ class AttendanceProvider with ChangeNotifier {
       );
 
       if (result['success']) {
-        await checkCurrentStatus();
-        await getTodayAttendances();
+        // Rafraîchir en parallèle pour plus de rapidité
+        await Future.wait([checkCurrentStatus(), getTodayAttendances()]);
       }
 
       _isLoading = false;

@@ -11,6 +11,25 @@ import 'storage_service.dart';
 class ApiService {
   final StorageService _storageService = StorageService();
 
+  // Client HTTP avec timeout pour éviter les blocages
+  http.Client _createClient() => http.Client();
+
+  // Wrapper pour GET avec timeout de 15 secondes
+  Future<http.Response> _get(Uri url, {required Map<String, String> headers}) {
+    return http.get(url, headers: headers).timeout(
+      const Duration(seconds: 15),
+      onTimeout: () => http.Response('{"message": "Délai dépassé, vérifiez votre connexion"}', 408),
+    );
+  }
+
+  // Wrapper pour POST avec timeout de 15 secondes
+  Future<http.Response> _post(Uri url, {required Map<String, String> headers, String? body}) {
+    return http.post(url, headers: headers, body: body).timeout(
+      const Duration(seconds: 15),
+      onTimeout: () => http.Response('{"message": "Délai dépassé, vérifiez votre connexion"}', 408),
+    );
+  }
+
   Future<Map<String, String>> _getHeaders({bool includeAuth = false}) async {
     Map<String, String> headers = {
       'Content-Type': 'application/json',
@@ -55,7 +74,7 @@ class ApiService {
     String? deviceOs,
   }) async {
     try {
-      final response = await http.post(
+      final response = await _post(
         Uri.parse('${ApiConstants.baseUrl}${ApiConstants.login}'),
         headers: await _getHeaders(),
         body: json.encode({
@@ -106,7 +125,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> getUser() async {
     try {
-      final response = await http.get(
+      final response = await _get(
         Uri.parse('${ApiConstants.baseUrl}${ApiConstants.user}'),
         headers: await _getHeaders(includeAuth: true),
       );
@@ -145,7 +164,7 @@ class ApiService {
         body['unite_enseignement_id'] = uniteEnseignementId;
       }
 
-      final response = await http.post(
+      final response = await _post(
         Uri.parse('${ApiConstants.baseUrl}${ApiConstants.checkIn}'),
         headers: await _getHeaders(includeAuth: true),
         body: json.encode(body),
@@ -174,7 +193,7 @@ class ApiService {
     double? accuracy,
   }) async {
     try {
-      final response = await http.post(
+      final response = await _post(
         Uri.parse('${ApiConstants.baseUrl}${ApiConstants.checkOut}'),
         headers: await _getHeaders(includeAuth: true),
         body: json.encode({
@@ -205,7 +224,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> getCurrentStatus() async {
     try {
-      final response = await http.get(
+      final response = await _get(
         Uri.parse('${ApiConstants.baseUrl}${ApiConstants.currentStatus}'),
         headers: await _getHeaders(includeAuth: true),
       );
@@ -229,7 +248,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> getAttendanceToday() async {
     try {
-      final response = await http.get(
+      final response = await _get(
         Uri.parse('${ApiConstants.baseUrl}${ApiConstants.attendanceToday}'),
         headers: await _getHeaders(includeAuth: true),
       );
@@ -252,7 +271,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> getMyCampuses() async {
     try {
-      final response = await http.get(
+      final response = await _get(
         Uri.parse('${ApiConstants.baseUrl}${ApiConstants.myCampuses}'),
         headers: await _getHeaders(includeAuth: true),
       );
@@ -364,7 +383,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> getDashboard() async {
     try {
-      final response = await http.get(
+      final response = await _get(
         Uri.parse('${ApiConstants.baseUrl}${ApiConstants.dashboard}'),
         headers: await _getHeaders(includeAuth: true),
       );

@@ -21,6 +21,7 @@ class LocationService {
   }
 
   // Obtenir la position actuelle avec meilleure précision
+  // Fait jusqu'à 3 tentatives et garde la meilleure précision
   Future<Position?> getCurrentPosition() async {
     try {
       // Vérifier si le service est activé
@@ -38,27 +39,67 @@ class LocationService {
         }
       }
 
-      // Obtenir la position avec haute précision
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.best,
-        timeLimit: const Duration(seconds: 15),
-      );
+      Position? bestPosition;
 
-      // Si la précision est mauvaise (>100m), réessayer une fois
-      if (position.accuracy > 100) {
-        print('GPS précision faible (${position.accuracy}m), nouvel essai...');
-        await Future.delayed(const Duration(seconds: 2));
-        Position retry = await Geolocator.getCurrentPosition(
+      // Tentative 1 : position haute précision
+      try {
+        Position pos = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.best,
           timeLimit: const Duration(seconds: 10),
         );
-        if (retry.accuracy < position.accuracy) {
-          position = retry;
+        bestPosition = pos;
+        print('GPS tentative 1: ${pos.latitude}, ${pos.longitude} (précision: ${pos.accuracy}m)');
+
+        // Si bonne précision (<50m), retourner directement
+        if (pos.accuracy <= 50) {
+          return pos;
         }
+      } catch (e) {
+        print('GPS tentative 1 échouée: $e');
       }
 
-      print('GPS: ${position.latitude}, ${position.longitude} (précision: ${position.accuracy}m)');
-      return position;
+      // Tentative 2 : réessayer après un court délai
+      await Future.delayed(const Duration(seconds: 2));
+      try {
+        Position pos = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.best,
+          timeLimit: const Duration(seconds: 10),
+        );
+        print('GPS tentative 2: ${pos.latitude}, ${pos.longitude} (précision: ${pos.accuracy}m)');
+
+        if (bestPosition == null || pos.accuracy < bestPosition.accuracy) {
+          bestPosition = pos;
+        }
+
+        // Si bonne précision, retourner
+        if (bestPosition.accuracy <= 50) {
+          return bestPosition;
+        }
+      } catch (e) {
+        print('GPS tentative 2 échouée: $e');
+      }
+
+      // Tentative 3 : dernière chance avec délai plus long
+      await Future.delayed(const Duration(seconds: 3));
+      try {
+        Position pos = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 10),
+        );
+        print('GPS tentative 3: ${pos.latitude}, ${pos.longitude} (précision: ${pos.accuracy}m)');
+
+        if (bestPosition == null || pos.accuracy < bestPosition.accuracy) {
+          bestPosition = pos;
+        }
+      } catch (e) {
+        print('GPS tentative 3 échouée: $e');
+      }
+
+      if (bestPosition != null) {
+        print('GPS final: ${bestPosition.latitude}, ${bestPosition.longitude} (précision: ${bestPosition.accuracy}m)');
+      }
+
+      return bestPosition;
     } catch (e) {
       print('Erreur lors de l\'obtention de la position: $e');
       return null;
@@ -82,9 +123,13 @@ class LocationService {
     required double zoneLat,
     required double zoneLon,
     required double radius,
+    double accuracy = 0,
   }) {
     double distance = calculateDistance(userLat, userLon, zoneLat, zoneLon);
-    return distance <= radius;
+    // Ajouter la marge de précision GPS (comme le backend)
+    double tolerance = accuracy > 50 ? accuracy : 50;
+    if (tolerance > 500) tolerance = 500; // max 500m de tolérance
+    return distance <= (radius + tolerance);
   }
 
   // Stream de position pour suivre en temps réel

@@ -55,7 +55,7 @@ class ApiConstants {
 
 class AppConstants {
   static const String appName = 'IUEs/INSAM PRE';
-  static const String appVersion = '2.0.0';
+  static const String appVersion = '2.0.2';
   static const String tokenKey = 'auth_token';
   static const String userKey = 'user_data';
 
