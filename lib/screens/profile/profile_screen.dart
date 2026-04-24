@@ -10,6 +10,13 @@ import '../../services/storage_service.dart';
 import '../../utils/constants.dart';
 import 'package:intl/intl.dart';
 import 'salary_advance_screen.dart';
+import 'wallet_screen.dart';
+import 'edit_profile_screen.dart';
+import '../complaints/complaints_screen.dart';
+import '../results/results_screen.dart';
+
+import 'package:image_picker/image_picker.dart';
+import '../../models/user.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -32,7 +39,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _loadSalaryStatus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = Provider.of<AuthProvider>(context, listen: false).user;
+      if (user != null && !user.isStudent()) {
+        _loadSalaryStatus();
+      } else {
+        setState(() => _isLoading = false);
+      }
+    });
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    final picker = ImagePicker();
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
+
+    if (image == null) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final result = await _apiService.uploadProfilePhoto(File(image.path));
+
+      if (result['success']) {
+        if (mounted) {
+          Provider.of<AuthProvider>(context, listen: false).setUser(result['user']);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Photo de profil mise à jour')),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'] ?? 'Erreur lors de l\'upload')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _loadSalaryStatus() async {
@@ -187,6 +240,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       case 'administratif': return 'Administratif';
       case 'technique': return 'Technique';
       case 'direction': return 'Direction';
+      case 'etudiant': return 'Étudiant';
       default: return type ?? 'N/A';
     }
   }
@@ -211,8 +265,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
-                        // Net salary highlight card
-                        _buildNetSalaryCard(),
+                        if (user?.isStudent() ?? false)
+                          ..._buildStudentProfile(user)
+                        else ...[
+                          // Net salary highlight card
+                          _buildNetSalaryCard(),
 
                         const SizedBox(height: 16),
                         // Month selector
@@ -222,6 +279,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         // Download payslip button
                         _buildDownloadPayslipButton(),
                         const SizedBox(height: 16),
+
+                        // Wallet button
+                        _buildWalletButton(),
+                        const SizedBox(height: 12),
 
                         // Salary advance request button
                         _buildSalaryAdvanceButton(),
@@ -257,6 +318,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ],
 
                           const SizedBox(height: 16),
+                        ],
                         ],
                       ]),
                     ),
@@ -295,33 +357,70 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 56, 20, 46),
+            child: SingleChildScrollView(
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 40, 20, 30),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.3),
-                        width: 1.5,
+                  Stack(
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.3),
+                            width: 2,
+                          ),
+                          image: user?.photo != null
+                              ? DecorationImage(
+                                  image: NetworkImage(user!.getPhotoUrl(ApiConstants.baseUrl)),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                        child: user?.photo == null
+                            ? Center(
+                                child: Text(
+                                  user?.firstName != null && user!.firstName.isNotEmpty
+                                      ? user.firstName.substring(0, 1).toUpperCase()
+                                      : 'U',
+                                  style: const TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              )
+                            : null,
                       ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        user?.firstName?.substring(0, 1).toUpperCase() ?? 'U',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: GestureDetector(
+                          onTap: _pickAndUploadImage,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black12,
+                                  blurRadius: 4,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(Icons.camera_alt_rounded, size: 16, color: _primaryDark),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                   const SizedBox(height: 10),
                   Text(
@@ -506,6 +605,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWalletButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1A237E), Color(0xFF283593)],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1A237E).withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const WalletScreen()),
+            );
+          },
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.account_balance_wallet, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Mon Portefeuille',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Consulter le solde et retirer',
+                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right, color: Colors.white70, size: 22),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -790,7 +956,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ],
 
-        // Loan details
+        // Loan details (deductions this month)
         if (deductions['loan_deductions_details'] != null &&
             (deductions['loan_deductions_details'] as List).isNotEmpty) ...[
           const SizedBox(height: 14),
@@ -799,6 +965,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 8),
           ...(deductions['loan_deductions_details'] as List).map(
             (loan) => _buildLoanDetail(loan),
+          ),
+        ],
+
+        // Active loans (including future deductions)
+        if (deductions['active_loans'] != null &&
+            (deductions['active_loans'] as List).isNotEmpty &&
+            (deductions['loan_deductions_details'] == null ||
+             (deductions['loan_deductions_details'] as List).isEmpty)) ...[
+          const SizedBox(height: 14),
+          Text('Avances / Prêts Actifs',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[700])),
+          const SizedBox(height: 8),
+          ...(deductions['active_loans'] as List).map(
+            (loan) => _buildLoanDetail(Map<String, dynamic>.from(loan)),
           ),
         ],
       ],
@@ -1166,12 +1346,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  num _toNum(dynamic value) {
+    if (value == null) return 0;
+    if (value is num) return value;
+    return num.tryParse(value.toString()) ?? 0;
+  }
+
   Widget _buildLoanDetail(Map<String, dynamic> loan) {
-    final totalAmount = loan['total_amount'] ?? 0;
-    final amountPaid = loan['amount_paid'] ?? 0;
-    final remainingAmount = loan['remaining_amount'] ?? 0;
-    final monthlyAmount = loan['monthly_amount'] ?? 0;
-    final deductionThisMonth = loan['deduction_this_month'] ?? 0;
+    final totalAmount = _toNum(loan['total_amount']);
+    final amountPaid = _toNum(loan['amount_paid']);
+    final remainingAmount = _toNum(loan['remaining_amount']);
+    final monthlyAmount = _toNum(loan['monthly_amount']);
+    final deductionThisMonth = _toNum(loan['deduction_this_month']);
     final progress = totalAmount > 0 ? (amountPaid / totalAmount) * 100 : 0;
 
     return Container(
@@ -1205,12 +1391,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF283593).withValues(alpha: 0.1),
+                  color: deductionThisMonth > 0
+                      ? const Color(0xFF283593).withValues(alpha: 0.1)
+                      : Colors.orange[50],
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  '${_formatCurrency(deductionThisMonth)}',
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF283593)),
+                  deductionThisMonth > 0
+                      ? _formatCurrency(deductionThisMonth)
+                      : 'Début: ${loan['start_date'] ?? 'Prochain mois'}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: deductionThisMonth > 0 ? const Color(0xFF283593) : Colors.orange[800],
+                  ),
                 ),
               ),
             ],
@@ -1245,6 +1439,212 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: TextStyle(fontSize: 10, color: Colors.grey[600], fontStyle: FontStyle.italic)),
           ],
         ],
+      ),
+    );
+  }
+
+  List<Widget> _buildStudentProfile(User? user) {
+    return [
+      const SizedBox(height: 16),
+      _buildProfileActionButton(
+        icon: Icons.edit_rounded,
+        title: 'Modifier le profil',
+        subtitle: 'Mettre à jour vos informations',
+        color: Colors.blue[700]!,
+        onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen()));
+        },
+      ),
+      const SizedBox(height: 12),
+      _buildProfileActionButton(
+        icon: Icons.feedback_rounded,
+        title: 'Plaintes',
+        subtitle: 'Envoyer une réclamation ou plainte',
+        color: Colors.orange[700]!,
+        onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const ComplaintsScreen()));
+        },
+      ),
+      const SizedBox(height: 12),
+      _buildProfileActionButton(
+        icon: Icons.school_rounded,
+        title: 'Mes Résultats',
+        subtitle: 'Consulter CC et examens',
+        color: Colors.indigo[700]!,
+        onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const ResultsScreen()));
+        },
+      ),
+      const SizedBox(height: 24),
+      _buildSectionHeader('Informations Personnelles'),
+      _buildInfoCard([
+        _buildInfoRow('Nom Complet', user?.fullName ?? ''),
+        _buildInfoRow('Matricule', user?.employeeId ?? 'N/A'),
+        _buildInfoRow('Email', user?.email ?? ''),
+        _buildInfoRow('Téléphone', user?.phone ?? 'N/A'),
+      ]),
+      const SizedBox(height: 16),
+      _buildSectionHeader('Informations Académiques'),
+      _buildInfoCard([
+        _buildInfoRow('Spécialité', user?.specialite ?? 'N/A'),
+        _buildInfoRow('Niveau', user?.niveau ?? 'N/A'),
+      ]),
+      const SizedBox(height: 16),
+      _buildSectionHeader('Mes Campus'),
+      _buildInfoCard(
+        user?.campuses.map<Widget>((c) => _buildInfoRow(c.name, c.address)).toList() ?? [const Text('Aucun campus assigné')],
+      ),
+      const SizedBox(height: 24),
+      _buildLogoutButton(),
+      const SizedBox(height: 32),
+    ];
+  }
+
+  Widget _buildProfileActionButton({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: color, size: 24),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1A1A2E),
+                        ),
+                      ),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded, color: Colors.grey[400]),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      child: Text(
+        title.toUpperCase(),
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: Colors.grey[600],
+          letterSpacing: 1.1,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoCard(List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: children,
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Flexible(
+            flex: 2,
+            child: Text(
+              label,
+              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            flex: 3,
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.visible,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLogoutButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: ElevatedButton.icon(
+        onPressed: _logout,
+        icon: const Icon(Icons.logout),
+        label: const Text('SE DÉCONNECTER'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.red[50],
+          foregroundColor: Colors.red[700],
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
       ),
     );
   }

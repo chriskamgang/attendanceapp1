@@ -6,7 +6,7 @@ class ApiConstants {
   // Pour iOS Simulator: utilisez 127.0.0.1 ou localhost
   // Pour émulateur Android: utilisez 10.0.2.2 au lieu de localhost
   // Pour appareil physique: utilisez l'IP de votre machine (ex: 192.168.x.x)
-  static const String localUrl = 'http://192.168.100.119:8000/api';
+  static const String localUrl = 'http://127.0.0.1:8003/api';
   static const String productionUrl = 'https://rh.iues-insambot.com/api';
 
   // URL active selon l'environnement
@@ -52,8 +52,16 @@ class ApiConstants {
   // Salary Advances
   static const String salaryAdvances = '/salary-advances';
 
+  // Moratoriums
+  static const String moratoriums = '/moratoriums';
+
   // Tasks
   static const String myTasks = '/tasks';
+
+  // Wallet
+  static const String wallet = '/wallet';
+  static const String walletTransfer = '/wallet/transfer';
+  static const String walletTransactions = '/wallet/transactions';
 
   // Mise à jour
   static const String checkUpdate = '/check-update';
@@ -61,7 +69,7 @@ class ApiConstants {
 
 class AppConstants {
   static const String appName = 'IUEs/INSAM PRE';
-  static const String appVersion = '2.0.2';
+  static const String appVersion = '2.1.0';
   static const String tokenKey = 'auth_token';
   static const String userKey = 'user_data';
 

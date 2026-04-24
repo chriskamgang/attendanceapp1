@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import 'home/home_screen.dart';
+import 'home/student_home_screen.dart';
 import 'attendance/history_screen.dart';
 import 'profile/profile_screen.dart';
-import 'tasks/task_list_screen.dart';
+import 'moratoire/moratoire_screen.dart';
 import '../services/geofencing_service.dart';
 import '../services/location_tracking_service.dart';
 import '../services/api_service.dart';
@@ -20,12 +23,14 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   final GeofencingService _geofencingService = GeofencingService();
   final ApiService _apiService = ApiService();
 
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const HistoryScreen(),
-    const TaskListScreen(),
-    const ProfileScreen(),
-  ];
+  List<Widget> _getScreens(bool isStudent) {
+    return [
+      isStudent ? const StudentHomeScreen() : const HomeScreen(),
+      const HistoryScreen(),
+      const MoratoireScreen(),
+      const ProfileScreen(),
+    ];
+  }
 
   @override
   void initState() {
@@ -91,10 +96,14 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final user = Provider.of<AuthProvider>(context).user;
+    final isStudent = user?.isStudent() ?? false;
+    final screens = _getScreens(isStudent);
+
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: _screens,
+        children: screens,
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
@@ -114,8 +123,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             label: 'Historique',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.task_alt),
-            label: 'Taches',
+            icon: Icon(Icons.credit_card),
+            label: 'Moratoire',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),

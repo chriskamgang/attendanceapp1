@@ -7,6 +7,7 @@ import 'providers/attendance_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/main_screen.dart';
 import 'screens/attendance/check_in_screen.dart';
+import 'screens/moratoire/moratoire_screen.dart';
 import 'services/storage_service.dart';
 import 'services/location_service.dart';
 import 'services/firebase_notification_service.dart';
@@ -115,6 +116,14 @@ class _MyAppState extends State<MyApp> {
             print('❌ Erreur navigation: $e');
           }
         }
+      };
+
+      FirebaseNotificationService().onMoratoriumTapped = (data) {
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (context) => const MoratoireScreen(),
+          ),
+        );
       };
     } catch (e) {
       print('⚠ Erreur deep links: $e');

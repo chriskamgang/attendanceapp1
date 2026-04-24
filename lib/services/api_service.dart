@@ -1,11 +1,15 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart' as dio_pkg;
 import '../utils/constants.dart';
 import '../models/user.dart';
 import '../models/campus.dart';
 import '../models/attendance.dart';
 import '../models/presence_check.dart';
 import '../models/unite_enseignement.dart';
+import '../models/complaint.dart';
+import '../models/academic_result.dart';
 import 'storage_service.dart';
 
 class ApiService {
@@ -46,6 +50,131 @@ class ApiService {
     return headers;
   }
 
+  // ========== USER PROFILE ==========
+
+  Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> data) async {
+    try {
+      final response = await http.put(
+        Uri.parse('${ApiConstants.baseUrl}/user/profile'),
+        headers: await _getHeaders(includeAuth: true),
+        body: json.encode(data),
+      );
+
+      final result = json.decode(response.body);
+      if (response.statusCode == 200) {
+        await _storageService.saveUser(result['user']);
+        return {'success': true, 'user': User.fromJson(result['user'])};
+      } else {
+        return {'success': false, 'message': result['message'] ?? 'Erreur'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur réseau: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> uploadProfilePhoto(File imageFile) async {
+    try {
+      final token = await _storageService.getToken();
+      final dio = dio_pkg.Dio();
+      
+      final formData = dio_pkg.FormData.fromMap({
+        'photo': await dio_pkg.MultipartFile.fromFile(
+          imageFile.path,
+          filename: imageFile.path.split('/').last,
+        ),
+      });
+
+      final response = await dio.put(
+        '${ApiConstants.baseUrl}/user/profile',
+        data: formData,
+        options: dio_pkg.Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        await _storageService.saveUser(data['user']);
+        return {'success': true, 'user': User.fromJson(data['user'])};
+      } else {
+        return {'success': false, 'message': 'Erreur lors de l\'upload'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur réseau: $e'};
+    }
+  }
+
+  // ========== COMPLAINTS ==========
+
+  Future<Map<String, dynamic>> getComplaints() async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/complaints'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final complaints = (data['complaints'] as List)
+            .map((c) => Complaint.fromJson(c))
+            .toList();
+        return {'success': true, 'complaints': complaints};
+      } else {
+        return {'success': false, 'message': 'Erreur de chargement'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur réseau: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> createComplaint(String subject, String content) async {
+    try {
+      final response = await _post(
+        Uri.parse('${ApiConstants.baseUrl}/complaints'),
+        headers: await _getHeaders(includeAuth: true),
+        body: json.encode({
+          'subject': subject,
+          'content': content,
+        }),
+      );
+
+      final data = json.decode(response.body);
+      if (response.statusCode == 201) {
+        return {'success': true, 'message': data['message']};
+      } else {
+        return {'success': false, 'message': data['message'] ?? 'Erreur'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur réseau: $e'};
+    }
+  }
+
+  // ========== ACADEMIC RESULTS ==========
+
+  Future<Map<String, dynamic>> getAcademicResults() async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/results'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final results = (data['results'] as List)
+            .map((r) => AcademicResult.fromJson(r))
+            .toList();
+        return {'success': true, 'results': results};
+      } else {
+        return {'success': false, 'message': 'Erreur de chargement'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur réseau: $e'};
+    }
+  }
+
   // ========== UPDATE CHECK ==========
 
   Future<Map<String, dynamic>> checkUpdate(String platform) async {
@@ -53,6 +182,9 @@ class ApiService {
       final response = await http.get(
         Uri.parse('${ApiConstants.baseUrl}${ApiConstants.checkUpdate}?platform=$platform'),
         headers: {'Accept': 'application/json'},
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => http.Response('{"success": false, "message": "Timeout"}', 408),
       );
 
       if (response.statusCode == 200) {
@@ -72,6 +204,7 @@ class ApiService {
     required String deviceId,
     String? deviceModel,
     String? deviceOs,
+    bool isStudent = false,
   }) async {
     try {
       final response = await _post(
@@ -83,6 +216,7 @@ class ApiService {
           'device_id': deviceId,
           'device_model': deviceModel,
           'device_os': deviceOs,
+          'is_student': isStudent,
         }),
       );
 
@@ -921,6 +1055,44 @@ class ApiService {
     }
   }
 
+  // ========== MORATORIUMS (POUR ÉTUDIANTS) ==========
+
+  Future<Map<String, dynamic>> getMoratoriums() async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.moratoriums}'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': json.decode(response.body)['data']};
+      } else {
+        return {'success': false, 'message': 'Erreur de chargement des moratoires'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur réseau: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> requestMoratorium(String reason) async {
+    try {
+      final response = await _post(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.moratoriums}'),
+        headers: await _getHeaders(includeAuth: true),
+        body: json.encode({'reason': reason}),
+      );
+
+      final data = json.decode(response.body);
+      if (response.statusCode == 201) {
+        return {'success': true, 'message': data['message']};
+      } else {
+        return {'success': false, 'message': data['message'] ?? 'Erreur lors de la demande'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur réseau: $e'};
+    }
+  }
+
   // ========== TACHES (Tasks) ==========
 
   Future<Map<String, dynamic>> getMyTasks() async {
@@ -959,11 +1131,12 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> updateTaskStatus(int taskId, String status, {String? note}) async {
+  Future<Map<String, dynamic>> updateTaskStatus(int taskId, String status, {String? note, int? penaltyAmount}) async {
     try {
       final body = {
         'status': status,
         if (note != null) 'note': note,
+        if (penaltyAmount != null) 'penalty_amount': penaltyAmount,
       };
 
       final headers = await _getHeaders(includeAuth: true);
@@ -1051,6 +1224,73 @@ class ApiService {
       return json.decode(response.body);
     } catch (e) {
       return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  // ========== WALLET (PORTEFEUILLE) ==========
+
+  Future<Map<String, dynamic>> getWallet() async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.wallet}'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'data': {
+            'balance': data['wallet']?['balance'] ?? 0,
+            'transactions': data['transactions'] ?? [],
+          }
+        };
+      } else {
+        return {'success': false, 'message': 'Erreur de chargement du portefeuille'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur reseau: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> walletTransfer(String phone, int amount, String method) async {
+    try {
+      final response = await _post(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.walletTransfer}'),
+        headers: await _getHeaders(includeAuth: true),
+        body: json.encode({
+          'phone': phone,
+          'amount': amount,
+          'method': method,
+        }),
+      );
+
+      final data = json.decode(response.body);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {'success': true, 'message': data['message'], 'data': data['data']};
+      } else {
+        return {'success': false, 'message': data['message'] ?? 'Erreur lors du transfert'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur reseau: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getWalletTransactions(int page) async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.walletTransactions}?page=$page'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {'success': true, 'data': data['data']};
+      } else {
+        return {'success': false, 'message': 'Erreur de chargement des transactions'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur reseau: $e'};
     }
   }
 

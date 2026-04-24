@@ -54,20 +54,52 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.user;
+    final attendanceProvider = Provider.of<AttendanceProvider>(context, listen: false);
 
-    final dashResult = await _apiService.getDashboard();
-    if (dashResult['success']) {
+    final isTeacher = user != null && (user.isVacataire() || user.isSemiPermanent() || user.isTitulaire());
+
+    // Lancer TOUS les appels API en parallèle au lieu de séquentiellement
+    final results = await Future.wait([
+      _apiService.getDashboard(),           // 0
+      _apiService.getMyCampuses(),           // 1
+      _apiService.getMyTasks(),              // 2
+      _apiService.getBreakStatus(),          // 3
+      attendanceProvider.checkCurrentStatus().then((_) => {'success': true}), // 4
+      if (isTeacher) _apiService.getUnitesEnseignement(),     // 5
+      if (isTeacher) _apiService.getTodaySchedule(),          // 6
+    ]);
+
+    // Traiter les résultats
+    final dashResult = results[0] as Map<String, dynamic>;
+    if (dashResult['success'] == true) {
       _dashboardData = dashResult['data'];
     }
 
-    final campusResult = await _apiService.getMyCampuses();
-    if (campusResult['success']) {
+    final campusResult = results[1] as Map<String, dynamic>;
+    if (campusResult['success'] == true) {
       _campuses = campusResult['campuses'];
     }
 
-    if (user != null && (user.isVacataire() || user.isSemiPermanent() || user.isTitulaire())) {
-      final ueResult = await _apiService.getUnitesEnseignement();
-      if (ueResult['success']) {
+    final tasksResult = results[2] as Map<String, dynamic>;
+    if (tasksResult['success'] == true) {
+      _myTasks = (tasksResult['data'] as List)
+          .map((t) => Task.fromJson(t))
+          .toList();
+    }
+
+    final breakResult = results[3] as Map<String, dynamic>;
+    if (breakResult['success'] == true) {
+      final breakData = breakResult['data'];
+      _isOnBreak = breakData['on_break'] ?? false;
+      if (_isOnBreak && breakData['active_break'] != null) {
+        _breakStartTime = breakData['active_break']['break_start'];
+        _breakElapsedMinutes = breakData['active_break']['elapsed_minutes'] ?? 0;
+      }
+    }
+
+    if (isTeacher && results.length > 5) {
+      final ueResult = results[5] as Map<String, dynamic>;
+      if (ueResult['success'] == true) {
         final data = ueResult['data'];
         _unitesActivees = (data['unites_activees'] as List)
             .map((ue) => UniteEnseignement.fromJson(ue))
@@ -77,35 +109,10 @@ class _HomeScreenState extends State<HomeScreen> {
             .toList();
         _ueStats = data['totaux'];
       }
-    }
 
-    if (user != null && (user.isVacataire() || user.isSemiPermanent() || user.isTitulaire())) {
-      final scheduleResult = await _apiService.getTodaySchedule();
-      if (scheduleResult['success']) {
+      final scheduleResult = results[6] as Map<String, dynamic>;
+      if (scheduleResult['success'] == true) {
         _todaySchedule = List<Map<String, dynamic>>.from(scheduleResult['data'] ?? []);
-      }
-    }
-
-    // Charger les taches
-    final tasksResult = await _apiService.getMyTasks();
-    if (tasksResult['success']) {
-      _myTasks = (tasksResult['data'] as List)
-          .map((t) => Task.fromJson(t))
-          .toList();
-    }
-
-    final attendanceProvider =
-        Provider.of<AttendanceProvider>(context, listen: false);
-    await attendanceProvider.checkCurrentStatus();
-
-    // Charger le statut de pause
-    final breakResult = await _apiService.getBreakStatus();
-    if (breakResult['success'] == true) {
-      final breakData = breakResult['data'];
-      _isOnBreak = breakData['on_break'] ?? false;
-      if (_isOnBreak && breakData['active_break'] != null) {
-        _breakStartTime = breakData['active_break']['break_start'];
-        _breakElapsedMinutes = breakData['active_break']['elapsed_minutes'] ?? 0;
       }
     }
 

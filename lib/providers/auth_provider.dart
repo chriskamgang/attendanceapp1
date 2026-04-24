@@ -43,7 +43,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   // Login
-  Future<Map<String, dynamic>> login(String email, String password) async {
+  Future<Map<String, dynamic>> login(String email, String password, {bool isStudent = false}) async {
     _isLoading = true;
     notifyListeners();
 
@@ -57,6 +57,7 @@ class AuthProvider with ChangeNotifier {
         deviceId: deviceInfo['device_id']!,
         deviceModel: deviceInfo['device_model'],
         deviceOs: deviceInfo['device_os'],
+        isStudent: isStudent,
       );
 
       if (result['success']) {
@@ -103,6 +104,13 @@ class AuthProvider with ChangeNotifier {
     _isAuthenticated = false;
 
     _isLoading = false;
+    notifyListeners();
+  }
+
+  // Mettre à jour l'utilisateur localement
+  void setUser(User user) {
+    _user = user;
+    _isAuthenticated = true;
     notifyListeners();
   }
 

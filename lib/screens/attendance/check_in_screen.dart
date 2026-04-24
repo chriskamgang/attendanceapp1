@@ -36,11 +36,13 @@ class _CheckInScreenState extends State<CheckInScreen> {
   UniteEnseignement? _selectedUnite;
   bool _isLoadingUnites = false;
   List<Map<String, dynamic>> _rawUeData = [];
+  int _locationRetryCount = 0;
+  static const int _maxAutoRetries = 5;
 
   @override
   void initState() {
     super.initState();
-    _getCurrentLocation();
+    _getCurrentLocationWithAutoRetry();
     _loadUnitesIfVacataire();
 
     // Si c'est un check-in rapide depuis géofencing
@@ -84,6 +86,22 @@ class _CheckInScreenState extends State<CheckInScreen> {
     }
   }
 
+  // Obtenir la position avec auto-retry si hors zone
+  Future<void> _getCurrentLocationWithAutoRetry() async {
+    _locationRetryCount = 0;
+    await _getCurrentLocation();
+
+    // Si hors zone et distance suspecte (> 2x le rayon), retenter automatiquement
+    // Cela gère le cas où Android retourne une position en cache
+    while (!_isInZone && _locationRetryCount < _maxAutoRetries && mounted) {
+      _locationRetryCount++;
+      print('=== AUTO-RETRY GPS #$_locationRetryCount (position possiblement en cache) ===');
+      await Future.delayed(const Duration(seconds: 2));
+      if (!mounted) return;
+      await _getCurrentLocation();
+    }
+  }
+
   Future<void> _getCurrentLocation() async {
     setState(() {
       _isLoadingPosition = true;
@@ -106,15 +124,14 @@ class _CheckInScreenState extends State<CheckInScreen> {
           zoneLat: widget.campus.latitude,
           zoneLon: widget.campus.longitude,
           radius: widget.campus.radius.toDouble(),
+          accuracy: _currentPosition!.accuracy,
         );
 
-        // Logs de débogage
         print('=== DÉTECTION DE ZONE GPS ===');
-        print('Position actuelle: ${_currentPosition!.latitude}, ${_currentPosition!.longitude}');
-        print('Position campus: ${widget.campus.latitude}, ${widget.campus.longitude}');
-        print('Rayon campus: ${widget.campus.radius} mètres');
-        print('Distance calculée: ${_distanceFromCampus!.toStringAsFixed(2)} mètres');
-        print('Dans la zone: $_isInZone');
+        print('Position: ${_currentPosition!.latitude}, ${_currentPosition!.longitude}');
+        print('Campus: ${widget.campus.latitude}, ${widget.campus.longitude}');
+        print('Rayon: ${widget.campus.radius}m | Distance: ${_distanceFromCampus!.toStringAsFixed(0)}m');
+        print('Précision: ${_currentPosition!.accuracy.toStringAsFixed(0)}m | Dans zone: $_isInZone');
         print('=============================');
       }
     } catch (e) {
@@ -127,9 +144,11 @@ class _CheckInScreenState extends State<CheckInScreen> {
       );
     }
 
-    setState(() {
-      _isLoadingPosition = false;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoadingPosition = false;
+      });
+    }
   }
 
   Future<void> _performCheckIn() async {
@@ -219,7 +238,9 @@ class _CheckInScreenState extends State<CheckInScreen> {
   @override
   Widget build(BuildContext context) {
     final attendanceProvider = Provider.of<AttendanceProvider>(context);
-    final hasActiveCheckIn = attendanceProvider.hasActiveCheckIn;
+    // Vérifier si le check-in actif est sur CE campus (pas un autre)
+    final hasActiveCheckInOnThisCampus = attendanceProvider.activeCheckIns
+        .any((a) => a.campusId == widget.campus.id);
 
     return Scaffold(
       appBar: AppBar(
@@ -397,9 +418,11 @@ class _CheckInScreenState extends State<CheckInScreen> {
 
                   // Bouton rafraîchir position
                   OutlinedButton.icon(
-                    onPressed: _getCurrentLocation,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Rafraîchir ma position'),
+                    onPressed: _isLoadingPosition ? null : _getCurrentLocationWithAutoRetry,
+                    icon: _isLoadingPosition
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.refresh),
+                    label: Text(_isLoadingPosition ? 'Recherche GPS en cours...' : 'Rafraîchir ma position'),
                   ),
                   const SizedBox(height: 24),
 
@@ -414,7 +437,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
                   // Boutons check-in/check-out
                   if (attendanceProvider.isLoading)
                     const Center(child: CircularProgressIndicator())
-                  else if (hasActiveCheckIn)
+                  else if (hasActiveCheckInOnThisCampus)
                     ElevatedButton.icon(
                       onPressed: _isInZone ? _performCheckOut : null,
                       icon: const Icon(Icons.logout),

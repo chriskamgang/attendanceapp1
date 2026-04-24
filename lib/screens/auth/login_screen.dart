@@ -17,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen>
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isStudent = false;
 
   late AnimationController _logoController;
   late AnimationController _formController;
@@ -138,6 +139,7 @@ class _LoginScreenState extends State<LoginScreen>
       final result = await authProvider.login(
         _emailController.text.trim(),
         _passwordController.text,
+        isStudent: _isStudent,
       );
 
       if (!mounted) return;
@@ -431,7 +433,33 @@ class _LoginScreenState extends State<LoginScreen>
                     },
                   ),
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 16),
+                
+                // Student selector
+                FadeTransition(
+                  opacity: _buttonOpacity,
+                  child: Row(
+                    children: [
+                      Checkbox(
+                        value: _isStudent,
+                        activeColor: const Color(0xFF0D47A1),
+                        onChanged: (value) {
+                          setState(() {
+                            _isStudent = value ?? false;
+                          });
+                        },
+                      ),
+                      const Text(
+                        "Je suis un étudiant",
+                        style: TextStyle(
+                          color: Color(0xFF1A1A2E),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
 
                 // Login button
                 FadeTransition(

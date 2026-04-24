@@ -3,7 +3,10 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'storage_service.dart';
 import 'api_service.dart';
 
@@ -28,6 +31,7 @@ class FirebaseNotificationService {
   String? _fcmToken;
   Function(Map<String, dynamic>)? onPresenceCheckReceived;
   Function(Map<String, dynamic>)? onGeofenceEntryTapped;
+  Function(Map<String, dynamic>)? onMoratoriumTapped;
 
   /// Initialiser Firebase et les notifications
   Future<void> initialize() async {
@@ -64,7 +68,7 @@ class FirebaseNotificationService {
     }
   }
 
-  /// Configurer les notifications locales
+  /// Configurer les notifications locales et creer les canaux Android
   Future<void> _setupLocalNotifications() async {
     const AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -85,24 +89,96 @@ class FirebaseNotificationService {
       initSettings,
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
+
+    // Creer les canaux de notification Android (obligatoire pour Android 8+)
+    final androidPlugin =
+        _localNotifications.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+
+    if (androidPlugin != null) {
+      await androidPlugin.createNotificationChannel(
+        const AndroidNotificationChannel(
+          'attendance_channel',
+          'Notifications Generales',
+          description: 'Notifications de pointage, wallet, taches',
+          importance: Importance.max,
+          playSound: true,
+          enableVibration: true,
+        ),
+      );
+
+      await androidPlugin.createNotificationChannel(
+        const AndroidNotificationChannel(
+          'presence_check_channel',
+          'Verification de Presence',
+          description: 'Notifications de verification de presence',
+          importance: Importance.max,
+          playSound: true,
+          enableVibration: true,
+        ),
+      );
+
+      await androidPlugin.createNotificationChannel(
+        const AndroidNotificationChannel(
+          'checkin_available_channel',
+          'Check-in Disponible',
+          description: 'Notifications quand vous etes dans la zone',
+          importance: Importance.max,
+          playSound: true,
+          enableVibration: true,
+        ),
+      );
+
+      await androidPlugin.createNotificationChannel(
+        const AndroidNotificationChannel(
+          'wallet_channel',
+          'Portefeuille',
+          description: 'Notifications de credit et transfert',
+          importance: Importance.high,
+          playSound: true,
+          enableVibration: true,
+        ),
+      );
+
+      await androidPlugin.createNotificationChannel(
+        const AndroidNotificationChannel(
+          'task_channel',
+          'Taches',
+          description: 'Notifications de nouvelles taches',
+          importance: Importance.high,
+          playSound: true,
+          enableVibration: true,
+        ),
+      );
+    }
   }
 
   /// Récupérer le token FCM
   Future<void> _getFCMToken() async {
     try {
-      // Sur iOS, attendre que le token APNS soit disponible
-      String? apnsToken = await firebaseMessaging.getAPNSToken();
-      if (apnsToken == null) {
-        print('⏳ APNS token not ready, waiting...');
-        // Attendre et réessayer jusqu'à 3 fois
-        for (int i = 0; i < 3; i++) {
-          await Future.delayed(const Duration(seconds: 3));
-          apnsToken = await firebaseMessaging.getAPNSToken();
-          if (apnsToken != null) {
-            print('✓ APNS token received after ${(i + 1) * 3}s');
-            break;
+      bool isPhysicalDevice = true;
+      if (!kIsWeb && Platform.isIOS) {
+        final iosInfo = await DeviceInfoPlugin().iosInfo;
+        isPhysicalDevice = iosInfo.isPhysicalDevice;
+      }
+
+      // Sur iOS (appareil physique uniquement), attendre que le token APNS soit disponible
+      if (!kIsWeb && Platform.isIOS && isPhysicalDevice) {
+        String? apnsToken = await firebaseMessaging.getAPNSToken();
+        if (apnsToken == null) {
+          print('⏳ APNS token not ready, waiting...');
+          // Attendre et réessayer jusqu'à 3 fois
+          for (int i = 0; i < 3; i++) {
+            await Future.delayed(const Duration(seconds: 3));
+            apnsToken = await firebaseMessaging.getAPNSToken();
+            if (apnsToken != null) {
+              print('✓ APNS token received after ${(i + 1) * 3}s');
+              break;
+            }
           }
         }
+      } else if (!isPhysicalDevice) {
+        print('ℹ Running on simulator, skipping APNS token check');
       }
 
       _fcmToken = await firebaseMessaging.getToken();
@@ -243,6 +319,13 @@ class FirebaseNotificationService {
       case 'scan_available':
         // Notification "Vous pouvez scanner"
         // Naviguer vers l'écran de check-in
+        break;
+
+      case 'moratorium_status':
+        // Notification de statut de moratoire
+        if (onMoratoriumTapped != null) {
+          onMoratoriumTapped!(data);
+        }
         break;
 
       default:
@@ -502,17 +585,61 @@ class FirebaseNotificationService {
 }
 
 /// Handler pour les messages en background (doit être top-level)
+/// Quand le message contient "notification", FCM l'affiche automatiquement.
+/// Ce handler sert uniquement pour les messages data-only ou le traitement silencieux.
 @pragma('vm:entry-point')
 Future<void> _firebaseBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   print('Background message received: ${message.messageId}');
 
-  // Afficher une notification locale si nécessaire
-  if (message.notification != null) {
-    final notificationService = FirebaseNotificationService();
-    await notificationService._showLocalNotification(
-      title: message.notification!.title ?? 'Notification',
-      body: message.notification!.body ?? '',
+  // Si le message contient "notification", FCM l'affiche deja automatiquement
+  // en background/terminated. Pas besoin de re-afficher via local notification.
+  // On ne traite ici que les messages data-only (sans notification).
+  if (message.notification == null && message.data.isNotEmpty) {
+    final FlutterLocalNotificationsPlugin localNotifications =
+        FlutterLocalNotificationsPlugin();
+
+    const AndroidInitializationSettings androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const DarwinInitializationSettings iosSettings =
+        DarwinInitializationSettings();
+    const InitializationSettings initSettings = InitializationSettings(
+      android: androidSettings,
+      iOS: iosSettings,
+    );
+    await localNotifications.initialize(initSettings);
+
+    const AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails(
+      'attendance_channel',
+      'Attendance Notifications',
+      channelDescription: 'Notifications de pointage et presence',
+      importance: Importance.max,
+      priority: Priority.high,
+      showWhen: true,
+      playSound: true,
+      enableVibration: true,
+    );
+
+    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    const NotificationDetails notificationDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    final title = message.data['title'] ?? 'Notification';
+    final body = message.data['body'] ?? '';
+
+    await localNotifications.show(
+      DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title,
+      body,
+      notificationDetails,
       payload: jsonEncode(message.data),
     );
   }

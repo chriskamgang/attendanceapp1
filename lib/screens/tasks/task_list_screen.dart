@@ -95,7 +95,24 @@ class _TaskListScreenState extends State<TaskListScreen> {
   }
 
   Future<void> _updateTaskStatus(Task task, String newStatus) async {
-    final result = await _apiService.updateTaskStatus(task.id, newStatus);
+    // Si on passe en "en cours", demander le montant de pénalité
+    if (newStatus == 'in_progress') {
+      final penaltyAmount = await _showPenaltyDialog();
+      if (penaltyAmount == null) return; // Annulé
+
+      final result = await _apiService.updateTaskStatus(
+        task.id,
+        newStatus,
+        penaltyAmount: penaltyAmount,
+      );
+      _handleStatusResult(result);
+    } else {
+      final result = await _apiService.updateTaskStatus(task.id, newStatus);
+      _handleStatusResult(result);
+    }
+  }
+
+  void _handleStatusResult(Map<String, dynamic> result) {
     if (result['success']) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -112,6 +129,109 @@ class _TaskListScreenState extends State<TaskListScreen> {
         ),
       );
     }
+  }
+
+  Future<int?> _showPenaltyDialog() async {
+    final controller = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    return showDialog<int>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.monetization_on, color: Colors.orange, size: 28),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Montant de penalite',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Entrez le montant qui sera coupe de votre salaire si vous ne terminez pas cette tache dans les delais.',
+                style: TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Montant (FCFA)',
+                  hintText: 'Ex: 5000',
+                  prefixIcon: const Icon(Icons.payments_outlined),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey[50],
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Le montant est obligatoire';
+                  }
+                  final amount = int.tryParse(value);
+                  if (amount == null || amount < 0) {
+                    return 'Montant invalide';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.orange[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange[200]!),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.warning_amber, color: Colors.orange, size: 18),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Ce montant sera deductible si la tache n\'est pas terminee a temps.',
+                        style: TextStyle(fontSize: 11, color: Colors.orange),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, null),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                Navigator.pop(context, int.parse(controller.text));
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Confirmer et commencer'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showTaskDetail(Task task) {
@@ -193,7 +313,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                             Text(
                               task.penaltyApproved
                                   ? 'Coupure approuvee: ${task.formattedPenalty}'
-                                  : 'Penalite si non faite: ${task.formattedPenalty}',
+                                  : 'Montant engage: ${task.formattedPenalty}',
                               style: TextStyle(
                                 color: task.penaltyApproved ? Colors.red[800] : Colors.orange[800],
                                 fontWeight: FontWeight.w600,
