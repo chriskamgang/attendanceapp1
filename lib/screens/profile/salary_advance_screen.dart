@@ -36,10 +36,16 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
 
   Future<void> _loadRequests() async {
     setState(() => _isLoading = true);
-    final result = await _apiService.getSalaryAdvances();
-    if (result['success']) {
-      _requests = List<Map<String, dynamic>>.from(result['data']);
+    try {
+      final result = await _apiService.getSalaryAdvances();
+      if (!mounted) return;
+      if (result['success'] == true && result['data'] != null) {
+        _requests = List<Map<String, dynamic>>.from(result['data']);
+      }
+    } catch (e) {
+      debugPrint('Erreur chargement avances: $e');
     }
+    if (!mounted) return;
     setState(() => _isLoading = false);
   }
 
@@ -55,9 +61,8 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
       reason: _reasonController.text,
     );
 
-    setState(() => _isSubmitting = false);
-
     if (!mounted) return;
+    setState(() => _isSubmitting = false);
 
     if (result['success']) {
       ScaffoldMessenger.of(context).showSnackBar(

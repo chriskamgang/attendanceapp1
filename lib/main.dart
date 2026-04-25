@@ -51,9 +51,17 @@ class _MyAppState extends State<MyApp> {
       try {
         await initializeDateFormatting('fr_FR', null);
         await FirebaseNotificationService().initialize();
-        print('✓ Services initialisés');
+        print('Services initialisés');
       } catch (e) {
-        print('⚠ Erreur initialisation: $e');
+        print('Erreur initialisation: $e');
+      }
+    });
+
+    // Vérifier les mises à jour après que la navigation soit prête (non-bloquant)
+    Future.delayed(const Duration(seconds: 2), () {
+      final navContext = navigatorKey.currentContext;
+      if (navContext != null) {
+        UpdateService().checkForUpdate(navContext);
       }
     });
 
@@ -200,14 +208,13 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _checkAuth() async {
     try {
-      // Vérifier les mises à jour AVANT tout
-      if (mounted) {
-        await UpdateService().checkForUpdate(context);
-      }
-
-      // Vérifier l'authentification
+      // Vérifier l'authentification en priorité (local, rapide)
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      await authProvider.checkAuth();
+      // Timeout de sécurité : ne jamais rester sur le splash plus de 5s
+      await authProvider.checkAuth().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {},
+      );
 
       if (!mounted) return;
 
@@ -217,7 +224,6 @@ class _SplashScreenState extends State<SplashScreen> {
         Navigator.of(context).pushReplacementNamed('/login');
       }
     } catch (e) {
-      print('❌ Erreur auth: $e');
       if (!mounted) return;
       Navigator.of(context).pushReplacementNamed('/login');
     }

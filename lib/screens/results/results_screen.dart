@@ -30,14 +30,17 @@ class _ResultsScreenState extends State<ResultsScreen> {
     setState(() => _isLoading = true);
     try {
       final result = await _apiService.getAcademicResults();
-      if (result['success']) {
+      if (!mounted) return;
+      if (result['success'] == true) {
         setState(() {
-          _results = result['results'];
+          _results = result['results'] ?? [];
         });
       }
-    } finally {
-      setState(() => _isLoading = false);
+    } catch (e) {
+      debugPrint('Erreur chargement résultats: $e');
     }
+    if (!mounted) return;
+    setState(() => _isLoading = false);
   }
 
   Future<void> _openResult(AcademicResult result) async {

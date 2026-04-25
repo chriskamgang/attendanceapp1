@@ -34,7 +34,7 @@ class GeofencingService {
       // Vérifier si le géofencing est activé côté serveur
       final status = await _apiService.getGeofencingStatus();
       if (status['success'] == true) {
-        _isEnabled = status['data']['enabled'] ?? true;
+        _isEnabled = status['data']?['enabled'] ?? true;
       }
 
       if (!_isEnabled) {
@@ -90,6 +90,7 @@ class GeofencingService {
     // Gérer les événements ENTER et DWELL (DWELL = déjà dans la zone au démarrage)
     if (geofenceStatus == GeofenceStatus.ENTER || geofenceStatus == GeofenceStatus.DWELL) {
       final campusId = _extractCampusIdFromGeofenceId(geofence.id);
+      if (_campuses.isEmpty) return;
       final campus = _campuses.firstWhere(
         (c) => c.id == campusId,
         orElse: () => _campuses.first,

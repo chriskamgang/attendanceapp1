@@ -1065,7 +1065,8 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        return {'success': true, 'data': json.decode(response.body)['data']};
+        final body = json.decode(response.body);
+        return {'success': true, 'data': body['data']};
       } else {
         return {'success': false, 'message': 'Erreur de chargement des moratoires'};
       }

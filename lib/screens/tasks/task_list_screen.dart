@@ -29,14 +29,20 @@ class _TaskListScreenState extends State<TaskListScreen> {
   Future<void> _loadTasks() async {
     setState(() => _isLoading = true);
 
-    final result = await _apiService.getMyTasks();
-    if (result['success']) {
-      _tasks = (result['data'] as List)
-          .map((t) => Task.fromJson(t))
-          .toList();
-      _applyFilter();
+    try {
+      final result = await _apiService.getMyTasks();
+      if (!mounted) return;
+      if (result['success'] == true && result['data'] is List) {
+        _tasks = (result['data'] as List)
+            .map((t) => Task.fromJson(t))
+            .toList();
+        _applyFilter();
+      }
+    } catch (e) {
+      debugPrint('Erreur chargement tâches: $e');
     }
 
+    if (!mounted) return;
     setState(() => _isLoading = false);
   }
 

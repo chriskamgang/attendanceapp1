@@ -58,64 +58,73 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final isTeacher = user != null && (user.isVacataire() || user.isSemiPermanent() || user.isTitulaire());
 
-    // Lancer TOUS les appels API en parallèle au lieu de séquentiellement
-    final results = await Future.wait([
-      _apiService.getDashboard(),           // 0
-      _apiService.getMyCampuses(),           // 1
-      _apiService.getMyTasks(),              // 2
-      _apiService.getBreakStatus(),          // 3
-      attendanceProvider.checkCurrentStatus().then((_) => {'success': true}), // 4
-      if (isTeacher) _apiService.getUnitesEnseignement(),     // 5
-      if (isTeacher) _apiService.getTodaySchedule(),          // 6
-    ]);
+    try {
+      // Lancer TOUS les appels API en parallèle au lieu de séquentiellement
+      final results = await Future.wait([
+        _apiService.getDashboard(),           // 0
+        _apiService.getMyCampuses(),           // 1
+        _apiService.getMyTasks(),              // 2
+        _apiService.getBreakStatus(),          // 3
+        attendanceProvider.checkCurrentStatus().then((_) => <String, dynamic>{'success': true}), // 4
+        if (isTeacher) _apiService.getUnitesEnseignement(),     // 5
+        if (isTeacher) _apiService.getTodaySchedule(),          // 6
+      ]);
 
-    // Traiter les résultats
-    final dashResult = results[0] as Map<String, dynamic>;
-    if (dashResult['success'] == true) {
-      _dashboardData = dashResult['data'];
-    }
+      if (!mounted) return;
 
-    final campusResult = results[1] as Map<String, dynamic>;
-    if (campusResult['success'] == true) {
-      _campuses = campusResult['campuses'];
-    }
-
-    final tasksResult = results[2] as Map<String, dynamic>;
-    if (tasksResult['success'] == true) {
-      _myTasks = (tasksResult['data'] as List)
-          .map((t) => Task.fromJson(t))
-          .toList();
-    }
-
-    final breakResult = results[3] as Map<String, dynamic>;
-    if (breakResult['success'] == true) {
-      final breakData = breakResult['data'];
-      _isOnBreak = breakData['on_break'] ?? false;
-      if (_isOnBreak && breakData['active_break'] != null) {
-        _breakStartTime = breakData['active_break']['break_start'];
-        _breakElapsedMinutes = breakData['active_break']['elapsed_minutes'] ?? 0;
+      // Traiter les résultats
+      final dashResult = results[0] as Map<String, dynamic>;
+      if (dashResult['success'] == true) {
+        _dashboardData = dashResult['data'];
       }
-    }
 
-    if (isTeacher && results.length > 5) {
-      final ueResult = results[5] as Map<String, dynamic>;
-      if (ueResult['success'] == true) {
-        final data = ueResult['data'];
-        _unitesActivees = (data['unites_activees'] as List)
-            .map((ue) => UniteEnseignement.fromJson(ue))
+      final campusResult = results[1] as Map<String, dynamic>;
+      if (campusResult['success'] == true) {
+        _campuses = campusResult['campuses'] ?? [];
+      }
+
+      final tasksResult = results[2] as Map<String, dynamic>;
+      if (tasksResult['success'] == true && tasksResult['data'] is List) {
+        _myTasks = (tasksResult['data'] as List)
+            .map((t) => Task.fromJson(t))
             .toList();
-        _unitesNonActivees = (data['unites_non_activees'] as List)
-            .map((ue) => UniteEnseignement.fromJson(ue))
-            .toList();
-        _ueStats = data['totaux'];
       }
 
-      final scheduleResult = results[6] as Map<String, dynamic>;
-      if (scheduleResult['success'] == true) {
-        _todaySchedule = List<Map<String, dynamic>>.from(scheduleResult['data'] ?? []);
+      final breakResult = results[3] as Map<String, dynamic>;
+      if (breakResult['success'] == true && breakResult['data'] != null) {
+        final breakData = breakResult['data'];
+        _isOnBreak = breakData['on_break'] ?? false;
+        if (_isOnBreak && breakData['active_break'] != null) {
+          _breakStartTime = breakData['active_break']['break_start'];
+          _breakElapsedMinutes = breakData['active_break']['elapsed_minutes'] ?? 0;
+        }
       }
+
+      if (isTeacher && results.length > 5) {
+        final ueResult = results[5] as Map<String, dynamic>;
+        if (ueResult['success'] == true && ueResult['data'] != null) {
+          final data = ueResult['data'];
+          _unitesActivees = (data['unites_activees'] as List? ?? [])
+              .map((ue) => UniteEnseignement.fromJson(ue))
+              .toList();
+          _unitesNonActivees = (data['unites_non_activees'] as List? ?? [])
+              .map((ue) => UniteEnseignement.fromJson(ue))
+              .toList();
+          _ueStats = data['totaux'];
+        }
+
+        if (results.length > 6) {
+          final scheduleResult = results[6] as Map<String, dynamic>;
+          if (scheduleResult['success'] == true) {
+            _todaySchedule = List<Map<String, dynamic>>.from(scheduleResult['data'] ?? []);
+          }
+        }
+      }
+    } catch (e) {
+      print('Erreur chargement données: $e');
     }
 
+    if (!mounted) return;
     setState(() {
       _isLoading = false;
     });
@@ -482,7 +491,7 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     }
-    setState(() => _breakLoading = false);
+    if (mounted) setState(() => _breakLoading = false);
   }
 
   Future<void> _endBreak() async {
@@ -543,7 +552,7 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     }
-    setState(() => _breakLoading = false);
+    if (mounted) setState(() => _breakLoading = false);
   }
 
   Widget _buildBreakSection(user) {

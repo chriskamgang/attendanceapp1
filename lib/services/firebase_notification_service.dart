@@ -528,15 +528,19 @@ class FirebaseNotificationService {
 
   /// Callback quand une notification est tapée
   void _onNotificationTapped(NotificationResponse response) {
-    if (response.payload != null) {
-      final data = jsonDecode(response.payload!);
+    if (response.payload != null && response.payload!.isNotEmpty) {
+      try {
+        final data = jsonDecode(response.payload!);
 
-      // Si c'est une réponse au bouton "OUI"
-      if (response.actionId == 'respond_yes') {
-        _respondToPresenceCheck(data);
-      } else {
-        // Tap sur la notification
-        _handleNotificationData(data);
+        // Si c'est une réponse au bouton "OUI"
+        if (response.actionId == 'respond_yes') {
+          _respondToPresenceCheck(data);
+        } else {
+          // Tap sur la notification
+          _handleNotificationData(data);
+        }
+      } catch (e) {
+        print('Erreur décodage notification payload: $e');
       }
     }
   }

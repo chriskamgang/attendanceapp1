@@ -29,14 +29,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
     });
 
     final result = await _apiService.getMyHistory();
-    print('=== HISTORIQUE DEBUG ===');
-    print('Result: $result');
-    print('Success: ${result['success']}');
-    print('Attendances type: ${result['attendances'].runtimeType}');
-    print('Attendances length: ${result['attendances']?.length ?? 0}');
-    print('=======================');
 
-    if (result['success']) {
+    if (!mounted) return;
+
+    if (result['success'] == true && result['attendances'] != null) {
       setState(() {
         _attendances = (result['attendances'] as List)
             .map((a) => Attendance.fromJson(a))

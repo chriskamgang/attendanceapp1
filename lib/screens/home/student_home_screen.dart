@@ -60,6 +60,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       print('Erreur chargement données étudiant: $e');
     }
 
+    if (!mounted) return;
     setState(() => _isLoading = false);
   }
 

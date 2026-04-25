@@ -26,14 +26,17 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
     setState(() => _isLoading = true);
     try {
       final result = await _apiService.getComplaints();
-      if (result['success']) {
+      if (!mounted) return;
+      if (result['success'] == true) {
         setState(() {
-          _complaints = result['complaints'];
+          _complaints = result['complaints'] ?? [];
         });
       }
-    } finally {
-      setState(() => _isLoading = false);
+    } catch (e) {
+      debugPrint('Erreur chargement plaintes: $e');
     }
+    if (!mounted) return;
+    setState(() => _isLoading = false);
   }
 
   @override

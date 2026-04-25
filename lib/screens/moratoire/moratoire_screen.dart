@@ -25,12 +25,14 @@ class _MoratoireScreenState extends State<MoratoireScreen> {
     setState(() => _isLoading = true);
     try {
       final result = await _apiService.getMoratoriums();
-      if (result['success']) {
+      if (!mounted) return;
+      if (result['success'] == true) {
         setState(() => _moratoriums = result['data']);
       }
     } catch (e) {
       debugPrint('Erreur moratoires: $e');
     }
+    if (!mounted) return;
     setState(() => _isLoading = false);
   }
 
@@ -43,27 +45,27 @@ class _MoratoireScreenState extends State<MoratoireScreen> {
     }
 
     Navigator.pop(context); // Fermer le modal
+
+    if (!mounted) return;
     setState(() => _isLoading = true);
 
     try {
       final result = await _apiService.requestMoratorium(_reasonController.text.trim());
+      if (!mounted) return;
       if (result['success']) {
         _reasonController.clear();
         _loadMoratoriums();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['message']), backgroundColor: Colors.green),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'] ?? 'Demande envoyée'), backgroundColor: Colors.green),
+        );
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['message']), backgroundColor: Colors.red),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'] ?? 'Erreur'), backgroundColor: Colors.red),
+        );
         setState(() => _isLoading = false);
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
     }
   }

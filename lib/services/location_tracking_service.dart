@@ -106,25 +106,21 @@ class LocationTrackingService {
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['success'] == true) {
-          print('✓ Position envoyée: ${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}');
-
-          // Afficher si l'utilisateur est dans un campus
-          final inCampus = data['data']?['in_campus'];
-          if (inCampus != null) {
-            print('  → Dans le campus: ${inCampus['name']}');
-            // Afficher notification check-in disponible
-            await _showCheckInNotificationIfNeeded(
-              inCampus['name'] ?? 'Campus',
-              inCampus['id'] ?? 0,
-            );
-          } else {
-            print('  → Hors zone campus');
+        try {
+          final data = json.decode(response.body);
+          if (data['success'] == true) {
+            // Afficher si l'utilisateur est dans un campus
+            final inCampus = data['data']?['in_campus'];
+            if (inCampus != null) {
+              await _showCheckInNotificationIfNeeded(
+                inCampus['name'] ?? 'Campus',
+                inCampus['id'] ?? 0,
+              );
+            }
           }
+        } catch (e) {
+          print('Erreur parsing réponse location: $e');
         }
-      } else {
-        print('❌ Erreur serveur: ${response.statusCode}');
       }
     } catch (e) {
       print('❌ Erreur lors de l\'envoi de la position: $e');
