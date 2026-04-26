@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
 import '../providers/auth_provider.dart';
 import 'home/home_screen.dart';
 import 'home/student_home_screen.dart';
 import 'attendance/history_screen.dart';
 import 'profile/profile_screen.dart';
 import 'moratoire/moratoire_screen.dart';
+import 'location_disclosure_screen.dart';
 import '../services/geofencing_service.dart';
 import '../services/location_tracking_service.dart';
 import '../services/api_service.dart';
@@ -22,6 +24,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   int _currentIndex = 0;
   final GeofencingService _geofencingService = GeofencingService();
   final ApiService _apiService = ApiService();
+  bool _showDisclosure = false;
 
   List<Widget> _getScreens(bool isStudent) {
     return [
@@ -36,37 +39,82 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _checkLocationDisclosure();
+  }
+
+  /// Verifie si on doit afficher la divulgation avant de demarrer les services
+  Future<void> _checkLocationDisclosure() async {
+    final alreadyAccepted = await LocationDisclosureScreen.hasAccepted();
+    final permission = await Geolocator.checkPermission();
+    final hasAlwaysPermission = permission == LocationPermission.always;
+
+    if (alreadyAccepted || hasAlwaysPermission) {
+      // Deja accepte ou permission deja accordee — demarrer directement
+      _startLocationServices();
+    } else {
+      // Afficher l'ecran de divulgation
+      if (mounted) {
+        setState(() => _showDisclosure = true);
+      }
+    }
+  }
+
+  /// Demarre le tracking et geofencing apres consentement
+  void _startLocationServices() {
     _initializeGeofencing();
     _startLocationTracking();
+  }
+
+  /// Callback quand l'utilisateur accepte la divulgation
+  void _onDisclosureAccepted() {
+    setState(() => _showDisclosure = false);
+    _requestBackgroundPermission();
+  }
+
+  /// Callback quand l'utilisateur decline
+  void _onDisclosureDeclined() {
+    setState(() => _showDisclosure = false);
+    // Demarrer sans background location (fonctionnalites limitees)
+    _startLocationTracking();
+  }
+
+  /// Demande la permission background location apres divulgation
+  Future<void> _requestBackgroundPermission() async {
+    // D'abord demander whileInUse si pas encore accorde
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    // Puis demander always (background) — sur Android ca ouvre les parametres
+    if (permission == LocationPermission.whileInUse) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    // Demarrer les services quel que soit le resultat
+    _startLocationServices();
   }
 
   /// Démarrer le suivi de localisation en temps réel
   Future<void> _startLocationTracking() async {
     try {
       await LocationTrackingService.startTracking();
-      print('✅ Suivi de localisation en temps réel démarré');
     } catch (e) {
-      print('❌ Erreur démarrage tracking: $e');
+      print('Erreur démarrage tracking: $e');
     }
   }
 
   Future<void> _initializeGeofencing() async {
     try {
-      // Récupérer la liste des campus assignés à l'utilisateur
       final result = await _apiService.getCampuses();
       if (result['success'] == true) {
         final campuses = result['campuses'] as List<Campus>;
-
         if (campuses.isNotEmpty) {
-          // Initialiser le géofencing avec les campus
           await _geofencingService.initialize(campuses);
-          print('✅ Géofencing initialisé avec ${campuses.length} campus');
-        } else {
-          print('⚠️ Aucun campus assigné, géofencing non initialisé');
         }
       }
     } catch (e) {
-      print('❌ Erreur initialisation géofencing: $e');
+      print('Erreur initialisation géofencing: $e');
     }
   }
 
@@ -96,6 +144,14 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    // Afficher l'ecran de divulgation si necessaire
+    if (_showDisclosure) {
+      return LocationDisclosureScreen(
+        onAccepted: _onDisclosureAccepted,
+        onDeclined: _onDisclosureDeclined,
+      );
+    }
+
     final user = Provider.of<AuthProvider>(context).user;
     final isStudent = user?.isStudent() ?? false;
     final screens = _getScreens(isStudent);
