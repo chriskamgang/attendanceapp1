@@ -4,6 +4,7 @@ import '../services/api_service.dart';
 import '../services/storage_service.dart';
 import '../services/device_service.dart';
 import '../services/firebase_notification_service.dart';
+import '../services/offline_cache_service.dart';
 
 class AuthProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -100,6 +101,7 @@ class AuthProvider with ChangeNotifier {
     }
 
     await _apiService.logout();
+    await OfflineCacheService().clearAllCaches();
     _user = null;
     _isAuthenticated = false;
 

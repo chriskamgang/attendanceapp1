@@ -1,6 +1,8 @@
 PODS:
   - app_links (6.4.1):
     - Flutter
+  - connectivity_plus (0.0.1):
+    - Flutter
   - device_info_plus (0.0.1):
     - Flutter
   - DTTJailbreakDetection (0.4.0)
@@ -36,19 +38,13 @@ PODS:
     - GoogleUtilities/Reachability (~> 8.1)
     - GoogleUtilities/UserDefaults (~> 8.1)
     - nanopb (~> 3.30910.0)
-  - fl_location (0.0.1):
-    - Flutter
   - Flutter (1.0.0)
-  - flutter_activity_recognition (0.0.1):
-    - Flutter
   - flutter_jailbreak_detection (1.0.0):
     - Flutter
     - IOSSecuritySuite
   - flutter_local_notifications (0.0.1):
     - Flutter
   - fluttertoast (0.0.2):
-    - Flutter
-  - geofence_service (0.0.1):
     - Flutter
   - geolocator_apple (1.2.0):
     - Flutter
@@ -119,16 +115,14 @@ PODS:
 
 DEPENDENCIES:
   - app_links (from `.symlinks/plugins/app_links/ios`)
+  - connectivity_plus (from `.symlinks/plugins/connectivity_plus/ios`)
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
   - firebase_core (from `.symlinks/plugins/firebase_core/ios`)
   - firebase_messaging (from `.symlinks/plugins/firebase_messaging/ios`)
-  - fl_location (from `.symlinks/plugins/fl_location/ios`)
   - Flutter (from `Flutter`)
-  - flutter_activity_recognition (from `.symlinks/plugins/flutter_activity_recognition/ios`)
   - flutter_jailbreak_detection (from `.symlinks/plugins/flutter_jailbreak_detection/ios`)
   - flutter_local_notifications (from `.symlinks/plugins/flutter_local_notifications/ios`)
   - fluttertoast (from `.symlinks/plugins/fluttertoast/ios`)
-  - geofence_service (from `.symlinks/plugins/geofence_service/ios`)
   - geolocator_apple (from `.symlinks/plugins/geolocator_apple/darwin`)
   - google_maps_flutter_ios (from `.symlinks/plugins/google_maps_flutter_ios/ios`)
   - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
@@ -158,26 +152,22 @@ SPEC REPOS:
 EXTERNAL SOURCES:
   app_links:
     :path: ".symlinks/plugins/app_links/ios"
+  connectivity_plus:
+    :path: ".symlinks/plugins/connectivity_plus/ios"
   device_info_plus:
     :path: ".symlinks/plugins/device_info_plus/ios"
   firebase_core:
     :path: ".symlinks/plugins/firebase_core/ios"
   firebase_messaging:
     :path: ".symlinks/plugins/firebase_messaging/ios"
-  fl_location:
-    :path: ".symlinks/plugins/fl_location/ios"
   Flutter:
     :path: Flutter
-  flutter_activity_recognition:
-    :path: ".symlinks/plugins/flutter_activity_recognition/ios"
   flutter_jailbreak_detection:
     :path: ".symlinks/plugins/flutter_jailbreak_detection/ios"
   flutter_local_notifications:
     :path: ".symlinks/plugins/flutter_local_notifications/ios"
   fluttertoast:
     :path: ".symlinks/plugins/fluttertoast/ios"
-  geofence_service:
-    :path: ".symlinks/plugins/geofence_service/ios"
   geolocator_apple:
     :path: ".symlinks/plugins/geolocator_apple/darwin"
   google_maps_flutter_ios:
@@ -199,6 +189,7 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   app_links: 3dbc685f76b1693c66a6d9dd1e9ab6f73d97dc0a
+  connectivity_plus: cb623214f4e1f6ef8fe7403d580fdad517d2f7dd
   device_info_plus: 71ffc6ab7634ade6267c7a93088ed7e4f74e5896
   DTTJailbreakDetection: 5e356c5badc17995f65a83ed9483f787a0057b71
   Firebase: d99ac19b909cd2c548339c2241ecd0d1599ab02e
@@ -208,13 +199,10 @@ SPEC CHECKSUMS:
   FirebaseCoreInternal: 9afa45b1159304c963da48addb78275ef701c6b4
   FirebaseInstallations: 317270fec08a5d418fdbc8429282238cab3ac843
   FirebaseMessaging: 3b26e2cee503815e01c3701236b020aa9b576f09
-  fl_location: df295f3fd4f3c2357d7d8f23b01b0c23f4c84e4e
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  flutter_activity_recognition: 52dfad4c1e9cec99f0841b3ed0efcc9d424b3deb
   flutter_jailbreak_detection: a74360daaf5cbc80639959463b4b1395873c90b5
   flutter_local_notifications: ad39620c743ea4c15127860f4b5641649a988100
   fluttertoast: 2c67e14dce98bbdb200df9e1acf610d7a6264ea1
-  geofence_service: 55b58292760f0f491e22b6b91355aab40564cfad
   geolocator_apple: ab36aa0e8b7d7a2d7639b3b4e48308394e8cef5e
   Google-Maps-iOS-Utils: 66d6de12be1ce6d3742a54661e7a79cb317a9321
   google_maps_flutter_ios: 0291eb2aa252298a769b04d075e4a9d747ff7264

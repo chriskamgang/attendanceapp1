@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 2.1.1+10
+version: 2.1.2+12
 
 environment:
   sdk: '>=3.5.0 <4.0.0'
@@ -45,10 +45,14 @@ dependencies:
 
   # Storage
   shared_preferences: ^2.2.2
+  sqflite: ^2.3.0
+  path: ^1.8.3
+
+  # Connectivity
+  connectivity_plus: ^6.0.3
 
   # Geolocation
   geolocator: ^11.0.0
-  geofence_service: ^6.0.0+1
 
   # Device Info
   device_info_plus: ^10.0.1
@@ -74,6 +78,9 @@ dependencies:
   image_picker: ^1.0.7
   cached_network_image: ^3.3.1
   flutter_svg: ^2.0.9
+
+  # Biometric Authentication (Face ID / Fingerprint)
+  local_auth: ^2.3.0
 
   # UI Components
   flutter_spinkit: ^5.2.0

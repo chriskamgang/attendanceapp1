@@ -13,7 +13,19 @@ import 'salary_advance_screen.dart';
 import 'wallet_screen.dart';
 import 'edit_profile_screen.dart';
 import '../complaints/complaints_screen.dart';
+import '../leaves/leaves_screen.dart';
+import '../absences/absences_screen.dart';
 import '../results/results_screen.dart';
+import '../certificates/certificates_screen.dart';
+import '../payslips/payslip_history_screen.dart';
+import '../messaging/conversations_screen.dart';
+import '../evaluations/evaluations_screen.dart';
+import '../cnps/cnps_screen.dart';
+import '../orgchart/orgchart_screen.dart';
+import '../onboarding/onboarding_screen.dart';
+import '../recruitment/recruitment_screen.dart';
+import '../training/training_screen.dart';
+import '../analytics/hr_analytics_screen.dart';
 
 import 'package:image_picker/image_picker.dart';
 import '../../models/user.dart';
@@ -29,6 +41,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final ApiService _apiService = ApiService();
   Map<String, dynamic>? _salaryStatus;
   bool _isLoading = true;
+  bool _isFromCache = false;
   DateTime _selectedMonth = DateTime.now();
 
   static const Color _primaryDark = Color(0xFF1A237E);
@@ -115,6 +128,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         };
         setState(() {
           _salaryStatus = data;
+          _isFromCache = result['fromCache'] == true;
           _isLoading = false;
         });
       } else {
@@ -265,6 +279,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
+                        if (_isFromCache)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.orange[50],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.orange.withAlpha(80)),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.cloud_off, size: 18, color: Colors.orange[700]),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Donnees en cache - tirez pour actualiser',
+                                    style: TextStyle(fontSize: 12, color: Colors.orange[800]),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         if (user?.isStudent() ?? false)
                           ..._buildStudentProfile(user)
                         else ...[
@@ -280,12 +316,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _buildDownloadPayslipButton(),
                         const SizedBox(height: 16),
 
-                        // Wallet button
-                        _buildWalletButton(),
-                        const SizedBox(height: 12),
-
-                        // Salary advance request button
-                        _buildSalaryAdvanceButton(),
                         const SizedBox(height: 16),
 
                         if (_salaryStatus != null) ...[
@@ -732,6 +762,530 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         'Soumettre une demande',
                         style: TextStyle(color: Colors.white70, fontSize: 12),
                       ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== ABSENCES & TARDINESS BUTTON =====
+  Widget _buildAbsencesButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFE53935), Color(0xFFC62828)],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFE53935).withAlpha(76),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AbsencesScreen()),
+            );
+          },
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(51),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Absences & Retards', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('Consulter et justifier', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== LEAVE REQUEST BUTTON =====
+  Widget _buildLeaveRequestButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF5C6BC0), Color(0xFF3949AB)],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF5C6BC0).withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LeavesScreen()),
+            );
+          },
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.event_note, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Mes Conges', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('Demander et suivre vos conges', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== CERTIFICATES BUTTON =====
+  Widget _buildCertificatesButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFF00897B), Color(0xFF00695C)]),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: const Color(0xFF00897B).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CertificatesScreen())),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.white.withAlpha(51), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.description_outlined, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Attestations', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('Demander une attestation de travail', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== PAYSLIP HISTORY BUTTON =====
+  Widget _buildPayslipHistoryButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFF7B1FA2), Color(0xFF6A1B9A)]),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: const Color(0xFF7B1FA2).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PayslipHistoryScreen())),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.white.withAlpha(51), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.receipt_long, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Fiches de Paie', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('Historique et telechargement', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== MESSAGING BUTTON =====
+  Widget _buildMessagingButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFF0277BD), Color(0xFF01579B)]),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: const Color(0xFF0277BD).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ConversationsScreen())),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.white.withAlpha(51), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.chat_bubble_outline, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Messagerie', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('Discuter avec vos collegues', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== EVALUATIONS BUTTON =====
+  Widget _buildEvaluationsButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFF283593), Color(0xFF1A237E)]),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: const Color(0xFF283593).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EvaluationsScreen())),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.white.withAlpha(51), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.rate_review, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Evaluations', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('Evaluations annuelles et auto-evaluation', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== CNPS BUTTON =====
+  Widget _buildCnpsButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFF2E7D32), Color(0xFF1B5E20)]),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: const Color(0xFF2E7D32).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CnpsScreen())),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.white.withAlpha(51), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.account_balance, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('CNPS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('Dossier et cotisations CNPS', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== ORGCHART BUTTON =====
+  Widget _buildOrgChartButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFF6A1B9A), Color(0xFF4A148C)]),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: const Color(0xFF6A1B9A).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OrgChartScreen())),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.white.withAlpha(51), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.account_tree, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Organigramme', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('Structure et hierarchie', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== ONBOARDING BUTTON =====
+  Widget _buildOnboardingButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFF00796B), Color(0xFF00695C)]),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: const Color(0xFF00796B).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OnboardingScreen())),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.white.withAlpha(51), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.assignment_ind, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Onboarding', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('Integration et depart', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== RECRUITMENT BUTTON =====
+  Widget _buildRecruitmentButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFFE65100), Color(0xFFBF360C)]),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: const Color(0xFFE65100).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RecruitmentScreen())),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.white.withAlpha(51), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.work, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Recrutement', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('Offres d\'emploi et candidatures', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== TRAINING BUTTON =====
+  Widget _buildTrainingButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFF1565C0), Color(0xFF0D47A1)]),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: const Color(0xFF1565C0).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrainingScreen())),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.white.withAlpha(51), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.school, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Formations', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('E-learning et sessions de formation', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== ANALYTICS BUTTON =====
+  Widget _buildAnalyticsButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFF455A64), Color(0xFF37474F)]),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: const Color(0xFF455A64).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HrAnalyticsScreen())),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.white.withAlpha(51), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.analytics, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Analytics RH', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('Tableaux de bord et tendances', style: TextStyle(color: Colors.white70, fontSize: 12)),
                     ],
                   ),
                 ),

@@ -11,17 +11,27 @@ import 'screens/moratoire/moratoire_screen.dart';
 import 'services/storage_service.dart';
 import 'services/location_service.dart';
 import 'services/firebase_notification_service.dart';
-import 'services/geofencing_service.dart';
 import 'services/deep_link_service.dart';
 import 'services/api_service.dart';
 import 'services/update_service.dart';
+import 'services/offline_queue_service.dart';
 import 'models/campus.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialiser seulement le storage au démarrage
+  // Initialiser le storage (prioritaire)
   await StorageService().init();
+
+  // Initialiser la file d'attente offline en arrière-plan (non bloquant)
+  OfflineQueueService().init().timeout(
+    const Duration(seconds: 3),
+    onTimeout: () {
+      print('OfflineQueueService init timeout - continuing');
+    },
+  ).catchError((e) {
+    print('OfflineQueueService init error: $e');
+  });
 
   runApp(const MyApp());
 }
@@ -35,7 +45,6 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-  final GeofencingService _geofencingService = GeofencingService();
   final DeepLinkService _deepLinkService = DeepLinkService();
   final ApiService _apiService = ApiService();
 
@@ -141,7 +150,6 @@ class _MyAppState extends State<MyApp> {
   @override
   void dispose() {
     _deepLinkService.dispose();
-    _geofencingService.stop();
     super.dispose();
   }
 

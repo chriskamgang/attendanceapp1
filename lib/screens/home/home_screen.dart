@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -5,6 +6,7 @@ import '../../providers/attendance_provider.dart';
 import '../../models/campus.dart';
 import '../../models/unite_enseignement.dart';
 import '../../services/api_service.dart';
+import '../../services/offline_queue_service.dart';
 import '../../models/task.dart';
 import '../../services/location_service.dart';
 import '../../widgets/unite_enseignement_card.dart';
@@ -33,6 +35,11 @@ class _HomeScreenState extends State<HomeScreen> {
   int _breakElapsedMinutes = 0;
   bool _breakLoading = false;
   List<Task> _myTasks = [];
+  int _pendingOfflineCount = 0;
+  bool _isOnline = true;
+  bool _isFromCache = false;
+  StreamSubscription? _onlineSub;
+  StreamSubscription? _pendingSub;
 
   // Couleurs du thème
   static const Color _primaryDark = Color(0xFF1A237E);
@@ -45,6 +52,31 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadData();
+    _initOfflineListeners();
+  }
+
+  void _initOfflineListeners() {
+    final offlineQueue = OfflineQueueService();
+    _isOnline = offlineQueue.isOnline;
+
+    _onlineSub = offlineQueue.onlineStatusStream.listen((online) {
+      if (mounted) setState(() => _isOnline = online);
+    });
+    _pendingSub = offlineQueue.pendingCountStream.listen((count) {
+      if (mounted) setState(() => _pendingOfflineCount = count);
+    });
+
+    // Charger le compte initial
+    offlineQueue.getPendingCount().then((count) {
+      if (mounted) setState(() => _pendingOfflineCount = count);
+    });
+  }
+
+  @override
+  void dispose() {
+    _onlineSub?.cancel();
+    _pendingSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -72,15 +104,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (!mounted) return;
 
+      bool anyFromCache = false;
+
       // Traiter les résultats
       final dashResult = results[0] as Map<String, dynamic>;
       if (dashResult['success'] == true) {
         _dashboardData = dashResult['data'];
+        if (dashResult['fromCache'] == true) anyFromCache = true;
       }
 
       final campusResult = results[1] as Map<String, dynamic>;
       if (campusResult['success'] == true) {
         _campuses = campusResult['campuses'] ?? [];
+        if (campusResult['fromCache'] == true) anyFromCache = true;
       }
 
       final tasksResult = results[2] as Map<String, dynamic>;
@@ -120,6 +156,7 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         }
       }
+      _isFromCache = anyFromCache;
     } catch (e) {
       print('Erreur chargement données: $e');
     }
@@ -188,6 +225,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
+                        // Banniere hors-ligne / donnees en cache
+                        if (!_isOnline || _pendingOfflineCount > 0 || _isFromCache)
+                          _buildOfflineBanner(attendanceProvider),
+                        if (!_isOnline || _pendingOfflineCount > 0 || _isFromCache)
+                          const SizedBox(height: 12),
+
                         // Check-in status card
                         _buildCheckInStatus(attendanceProvider),
                         const SizedBox(height: 16),
@@ -343,6 +386,77 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildOfflineBanner(AttendanceProvider attendanceProvider) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _isOnline ? Colors.green[50] : Colors.orange[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _isOnline ? Colors.green.withAlpha(80) : Colors.orange.withAlpha(80),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            _isOnline ? Icons.cloud_done : Icons.cloud_off,
+            color: _isOnline ? Colors.green[700] : Colors.orange[700],
+            size: 22,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _isOnline ? 'Connexion retablie' : 'Mode hors-ligne',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: _isOnline ? Colors.green[800] : Colors.orange[800],
+                  ),
+                ),
+                if (_pendingOfflineCount > 0)
+                  Text(
+                    '$_pendingOfflineCount pointage(s) en attente de synchronisation',
+                    style: TextStyle(fontSize: 11, color: Colors.grey[700]),
+                  )
+                else if (!_isOnline)
+                  Text(
+                    _isFromCache
+                        ? 'Donnees en cache affichees. Le pointage GPS fonctionne hors-ligne.'
+                        : 'Le pointage GPS fonctionne. Les donnees seront synchronisees automatiquement.',
+                    style: TextStyle(fontSize: 11, color: Colors.grey[700]),
+                  ),
+              ],
+            ),
+          ),
+          if (_pendingOfflineCount > 0 && _isOnline)
+            TextButton.icon(
+              onPressed: () async {
+                final result = await attendanceProvider.syncOfflineActions();
+                if (!mounted) return;
+                final synced = result['synced'] ?? 0;
+                final failed = result['failed'] ?? 0;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('$synced synchronise(s), $failed echoue(s)'),
+                    backgroundColor: failed == 0 ? Colors.green : Colors.orange,
+                  ),
+                );
+              },
+              icon: const Icon(Icons.sync, size: 18),
+              label: const Text('Sync', style: TextStyle(fontSize: 12)),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.green[700],
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
+            ),
+        ],
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:dio/dio.dart' as dio_pkg;
+import 'package:path_provider/path_provider.dart';
 import '../utils/constants.dart';
 import '../models/user.dart';
 import '../models/campus.dart';
@@ -11,9 +12,11 @@ import '../models/unite_enseignement.dart';
 import '../models/complaint.dart';
 import '../models/academic_result.dart';
 import 'storage_service.dart';
+import 'offline_cache_service.dart';
 
 class ApiService {
   final StorageService _storageService = StorageService();
+  final OfflineCacheService _cache = OfflineCacheService();
 
   // Client HTTP avec timeout pour éviter les blocages
   http.Client _createClient() => http.Client();
@@ -51,6 +54,27 @@ class ApiService {
   }
 
   // ========== USER PROFILE ==========
+
+  Future<Map<String, dynamic>> getProfile() async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/user/profile'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        await _cache.cache(OfflineCacheService.keyProfile, data['user']);
+        return {'success': true, 'user': data['user']};
+      }
+      return {'success': false};
+    } catch (e) {
+      final cached = await _cache.getCached(OfflineCacheService.keyProfile, maxAgeHours: 168);
+      if (cached != null) {
+        return {'success': true, 'user': Map<String, dynamic>.from(cached), 'fromCache': true};
+      }
+      return {'success': false};
+    }
+  }
 
   Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> data) async {
     try {
@@ -104,6 +128,200 @@ class ApiService {
       }
     } catch (e) {
       return {'success': false, 'message': 'Erreur réseau: $e'};
+    }
+  }
+
+  // ========== ABSENCES & RETARDS ==========
+
+  Future<Map<String, dynamic>> getAbsences({int? month, int? year}) async {
+    try {
+      final m = month ?? DateTime.now().month;
+      final y = year ?? DateTime.now().year;
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/justifications/absences?month=$m&year=$y'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {'success': true, 'absences': data['absences'] ?? []};
+      }
+      return {'success': false, 'message': 'Erreur de chargement'};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur reseau: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getTardiness({int? month, int? year}) async {
+    try {
+      final m = month ?? DateTime.now().month;
+      final y = year ?? DateTime.now().year;
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/justifications/tardiness?month=$m&year=$y'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {'success': true, 'tardiness': data['tardiness'] ?? []};
+      }
+      return {'success': false, 'message': 'Erreur de chargement'};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur reseau: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getAbsenceSummary({int? month, int? year}) async {
+    try {
+      final m = month ?? DateTime.now().month;
+      final y = year ?? DateTime.now().year;
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/justifications/summary?month=$m&year=$y'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {'success': true, 'summary': data['summary']};
+      }
+      return {'success': false, 'message': 'Erreur de chargement'};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur reseau: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getMyJustificationRequests() async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/justifications/my-requests'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {'success': true, 'requests': data['requests'] ?? []};
+      }
+      return {'success': false, 'message': 'Erreur de chargement'};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur reseau: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> submitJustification({
+    required String type,
+    required String date,
+    required String reason,
+  }) async {
+    try {
+      final response = await _post(
+        Uri.parse('${ApiConstants.baseUrl}/justifications'),
+        headers: await _getHeaders(includeAuth: true),
+        body: json.encode({
+          'type': type,
+          'date': date,
+          'reason': reason,
+        }),
+      );
+      final data = json.decode(response.body);
+      if (response.statusCode == 201) {
+        return {'success': true, 'message': data['message']};
+      }
+      return {'success': false, 'message': data['message'] ?? 'Erreur'};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur reseau: $e'};
+    }
+  }
+
+  // ========== CONGES (Leave Requests) ==========
+
+  Future<Map<String, dynamic>> getLeaves({String? status}) async {
+    try {
+      String url = '${ApiConstants.baseUrl}/leaves';
+      if (status != null) url += '?status=$status';
+      final response = await _get(
+        Uri.parse(url),
+        headers: await _getHeaders(includeAuth: true),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (status == null) {
+          await _cache.cache(OfflineCacheService.keyLeaves, data['leaves'] ?? []);
+        }
+        return {'success': true, 'leaves': data['leaves'] ?? []};
+      } else {
+        return {'success': false, 'message': 'Erreur de chargement'};
+      }
+    } catch (e) {
+      if (status == null) {
+        final cached = await _cache.getCached(OfflineCacheService.keyLeaves, maxAgeHours: 48);
+        if (cached != null) {
+          return {'success': true, 'leaves': cached, 'fromCache': true};
+        }
+      }
+      return {'success': false, 'message': 'Erreur reseau: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getLeaveBalances() async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/leaves/balances'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        await _cache.cache(OfflineCacheService.keyLeaveBalances, data['balances'] ?? []);
+        return {'success': true, 'balances': data['balances'] ?? []};
+      } else {
+        return {'success': false, 'message': 'Erreur de chargement'};
+      }
+    } catch (e) {
+      final cached = await _cache.getCached(OfflineCacheService.keyLeaveBalances, maxAgeHours: 48);
+      if (cached != null) {
+        return {'success': true, 'balances': cached, 'fromCache': true};
+      }
+      return {'success': false, 'message': 'Erreur reseau: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> requestLeave({
+    required String type,
+    required String startDate,
+    required String endDate,
+    required String reason,
+  }) async {
+    try {
+      final response = await _post(
+        Uri.parse('${ApiConstants.baseUrl}/leaves'),
+        headers: await _getHeaders(includeAuth: true),
+        body: json.encode({
+          'type': type,
+          'start_date': startDate,
+          'end_date': endDate,
+          'reason': reason,
+        }),
+      );
+
+      final data = json.decode(response.body);
+      if (response.statusCode == 201) {
+        return {'success': true, 'message': data['message']};
+      } else {
+        return {'success': false, 'message': data['message'] ?? 'Erreur'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur reseau: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> cancelLeave(int leaveId) async {
+    try {
+      final response = await _post(
+        Uri.parse('${ApiConstants.baseUrl}/leaves/$leaveId/cancel'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+
+      final data = json.decode(response.body);
+      return {'success': data['success'] == true, 'message': data['message'] ?? ''};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur reseau: $e'};
     }
   }
 
@@ -356,6 +574,77 @@ class ApiService {
     }
   }
 
+  // ========== OFFLINE SYNC ==========
+
+  Future<Map<String, dynamic>> offlineCheckIn({
+    required int campusId,
+    required double latitude,
+    required double longitude,
+    double? accuracy,
+    int? uniteEnseignementId,
+    required String offlineTimestamp,
+  }) async {
+    try {
+      final body = {
+        'campus_id': campusId,
+        'latitude': latitude,
+        'longitude': longitude,
+        'accuracy': accuracy,
+        'offline_timestamp': offlineTimestamp,
+        'is_offline': true,
+      };
+      if (uniteEnseignementId != null) {
+        body['unite_enseignement_id'] = uniteEnseignementId;
+      }
+
+      final response = await _post(
+        Uri.parse('${ApiConstants.baseUrl}/attendance/offline-sync'),
+        headers: await _getHeaders(includeAuth: true),
+        body: json.encode(body),
+      );
+
+      final data = json.decode(response.body);
+      return {
+        'success': response.statusCode == 201,
+        'message': data['message'] ?? '',
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur réseau: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> offlineCheckOut({
+    required int campusId,
+    required double latitude,
+    required double longitude,
+    double? accuracy,
+    required String offlineTimestamp,
+  }) async {
+    try {
+      final response = await _post(
+        Uri.parse('${ApiConstants.baseUrl}/attendance/offline-sync'),
+        headers: await _getHeaders(includeAuth: true),
+        body: json.encode({
+          'campus_id': campusId,
+          'latitude': latitude,
+          'longitude': longitude,
+          'accuracy': accuracy,
+          'offline_timestamp': offlineTimestamp,
+          'is_offline': true,
+          'type': 'check-out',
+        }),
+      );
+
+      final data = json.decode(response.body);
+      return {
+        'success': response.statusCode == 201,
+        'message': data['message'] ?? '',
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur réseau: $e'};
+    }
+  }
+
   Future<Map<String, dynamic>> getCurrentStatus() async {
     try {
       final response = await _get(
@@ -412,6 +701,8 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        // Cache les donnees brutes pour le mode offline
+        await _cache.cache(OfflineCacheService.keyCampuses, data['campuses']);
         List<Campus> campuses = (data['campuses'] as List)
             .map((c) => Campus.fromJson(c))
             .toList();
@@ -420,6 +711,14 @@ class ApiService {
         return {'success': false, 'message': 'Erreur de chargement'};
       }
     } catch (e) {
+      // Mode offline: servir depuis le cache
+      final cached = await _cache.getCached(OfflineCacheService.keyCampuses, maxAgeHours: 168);
+      if (cached != null) {
+        List<Campus> campuses = (cached as List)
+            .map((c) => Campus.fromJson(Map<String, dynamic>.from(c)))
+            .toList();
+        return {'success': true, 'campuses': campuses, 'fromCache': true};
+      }
       return {'success': false, 'message': 'Erreur réseau: $e'};
     }
   }
@@ -524,11 +823,16 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        await _cache.cache(OfflineCacheService.keyDashboard, data);
         return {'success': true, 'data': data};
       } else {
         return {'success': false, 'message': 'Erreur de chargement'};
       }
     } catch (e) {
+      final cached = await _cache.getCached(OfflineCacheService.keyDashboard, maxAgeHours: 24);
+      if (cached != null) {
+        return {'success': true, 'data': Map<String, dynamic>.from(cached), 'fromCache': true};
+      }
       return {'success': false, 'message': 'Erreur réseau: $e'};
     }
   }
@@ -579,25 +883,24 @@ class ApiService {
       final targetYear = year ?? now.year;
 
       final url = '${ApiConstants.baseUrl}/user/salary-status?month=$targetMonth&year=$targetYear';
-      print('💰 Fetching salary status from: $url');
 
       final response = await http.get(
         Uri.parse(url),
         headers: await _getHeaders(includeAuth: true),
       );
 
-      print('📡 Response status: ${response.statusCode}');
-      print('📦 Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        await _cache.cache(OfflineCacheService.keySalaryStatus, data['data']);
         return {'success': true, 'data': data['data']};
       } else {
-        print('❌ Salary Status Error: ${response.statusCode}');
         return {'success': false, 'message': 'Erreur de chargement du statut salarial (${response.statusCode})'};
       }
     } catch (e) {
-      print('💥 Exception getSalaryStatus: $e');
+      final cached = await _cache.getCached(OfflineCacheService.keySalaryStatus, maxAgeHours: 72);
+      if (cached != null) {
+        return {'success': true, 'data': Map<String, dynamic>.from(cached), 'fromCache': true};
+      }
       return {'success': false, 'message': 'Erreur réseau: $e'};
     }
   }
@@ -782,17 +1085,15 @@ class ApiService {
   Future<Map<String, dynamic>> getUnitesEnseignement() async {
     try {
       final url = '${ApiConstants.baseUrl}/unites-enseignement';
-      print('🔍 Fetching UE from: $url');
 
       final response = await http.get(
         Uri.parse(url),
         headers: await _getHeaders(includeAuth: true),
       );
 
-      print('📡 Response status: ${response.statusCode}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        await _cache.cache(OfflineCacheService.keyUes, data['data']);
         return {
           'success': data['success'] ?? true,
           'data': data['data'],
@@ -805,7 +1106,10 @@ class ApiService {
         };
       }
     } catch (e) {
-      print('💥 Exception: $e');
+      final cached = await _cache.getCached(OfflineCacheService.keyUes, maxAgeHours: 48);
+      if (cached != null) {
+        return {'success': true, 'data': Map<String, dynamic>.from(cached), 'fromCache': true};
+      }
       return {
         'success': false,
         'message': 'Erreur réseau: $e',
@@ -962,6 +1266,7 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        await _cache.cache(OfflineCacheService.keyScheduleToday, data['data'] ?? []);
         return {
           'success': data['success'] ?? true,
           'data': data['data'] ?? [],
@@ -970,6 +1275,10 @@ class ApiService {
         return {'success': false, 'message': 'Erreur de chargement'};
       }
     } catch (e) {
+      final cached = await _cache.getCached(OfflineCacheService.keyScheduleToday, maxAgeHours: 12);
+      if (cached != null) {
+        return {'success': true, 'data': cached, 'fromCache': true};
+      }
       return {'success': false, 'message': 'Erreur réseau: $e'};
     }
   }
@@ -1105,11 +1414,16 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        await _cache.cache(OfflineCacheService.keyTasks, data['data'] ?? []);
         return {'success': true, 'data': data['data'] ?? []};
       } else {
         return {'success': false, 'message': 'Erreur de chargement des taches'};
       }
     } catch (e) {
+      final cached = await _cache.getCached(OfflineCacheService.keyTasks, maxAgeHours: 24);
+      if (cached != null) {
+        return {'success': true, 'data': cached, 'fromCache': true};
+      }
       return {'success': false, 'message': 'Erreur reseau: $e'};
     }
   }
@@ -1222,8 +1536,16 @@ class ApiService {
           'Authorization': 'Bearer $token',
         },
       );
-      return json.decode(response.body);
+      final result = json.decode(response.body);
+      if (result['success'] == true) {
+        await _cache.cache(OfflineCacheService.keyBreakStatus, result['data']);
+      }
+      return result;
     } catch (e) {
+      final cached = await _cache.getCached(OfflineCacheService.keyBreakStatus, maxAgeHours: 4);
+      if (cached != null) {
+        return {'success': true, 'data': Map<String, dynamic>.from(cached), 'fromCache': true};
+      }
       return {'success': false, 'message': 'Erreur: $e'};
     }
   }
@@ -1432,6 +1754,489 @@ class ApiService {
         'success': false,
         'message': 'Erreur réseau: $e',
       };
+    }
+  }
+
+  // ========== ATTESTATIONS DE TRAVAIL ==========
+
+  Future<Map<String, dynamic>> getCertificates() async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/certificates'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      final data = json.decode(response.body);
+      if (data['success'] == true) {
+        await _cache.cache(OfflineCacheService.keyCertificates, data['certificates'] ?? []);
+      }
+      return {'success': data['success'] == true, 'certificates': data['certificates'] ?? []};
+    } catch (e) {
+      final cached = await _cache.getCached(OfflineCacheService.keyCertificates, maxAgeHours: 48);
+      if (cached != null) {
+        return {'success': true, 'certificates': cached, 'fromCache': true};
+      }
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> requestCertificate({required String type, String? purpose}) async {
+    try {
+      final response = await _post(
+        Uri.parse('${ApiConstants.baseUrl}/certificates'),
+        headers: await _getHeaders(includeAuth: true),
+        body: json.encode({'type': type, 'purpose': purpose}),
+      );
+      final data = json.decode(response.body);
+      return {'success': response.statusCode == 201, 'message': data['message'] ?? ''};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  Future<String?> downloadCertificate(int id) async {
+    try {
+      final token = await _storageService.getToken();
+      final dioClient = dio_pkg.Dio();
+      final dir = await getApplicationDocumentsDirectory();
+      final filePath = '${dir.path}/attestation_$id.pdf';
+
+      await dioClient.download(
+        '${ApiConstants.baseUrl}/certificates/$id/download',
+        filePath,
+        options: dio_pkg.Options(headers: {'Authorization': 'Bearer $token', 'Accept': 'application/pdf'}),
+      );
+      return filePath;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // ========== HISTORIQUE FICHES DE PAIE ==========
+
+  Future<Map<String, dynamic>> getPayslipHistory() async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/user/payslip-history'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      final data = json.decode(response.body);
+      return {'success': data['success'] == true, 'history': data['history'] ?? [], 'is_vacataire': data['is_vacataire'] ?? false};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  // ========== MESSAGERIE INTERNE ==========
+
+  Future<Map<String, dynamic>> getConversations() async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/messaging/conversations'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      final data = json.decode(response.body);
+      if (data['success'] == true) {
+        await _cache.cache(OfflineCacheService.keyConversations, data['conversations'] ?? []);
+      }
+      return {'success': data['success'] == true, 'conversations': data['conversations'] ?? []};
+    } catch (e) {
+      final cached = await _cache.getCached(OfflineCacheService.keyConversations, maxAgeHours: 24);
+      if (cached != null) {
+        return {'success': true, 'conversations': cached, 'fromCache': true};
+      }
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getMessages(int conversationId) async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/messaging/conversations/$conversationId/messages'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      final data = json.decode(response.body);
+      return {'success': data['success'] == true, 'messages': data['messages'] ?? [], 'conversation': data['conversation']};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> sendMessage(int conversationId, String body) async {
+    try {
+      final response = await _post(
+        Uri.parse('${ApiConstants.baseUrl}/messaging/conversations/$conversationId/messages'),
+        headers: await _getHeaders(includeAuth: true),
+        body: json.encode({'body': body}),
+      );
+      final data = json.decode(response.body);
+      return {'success': response.statusCode == 201, 'message': data['message']};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> createConversation({required int recipientId, required String message}) async {
+    try {
+      final response = await _post(
+        Uri.parse('${ApiConstants.baseUrl}/messaging/conversations'),
+        headers: await _getHeaders(includeAuth: true),
+        body: json.encode({'recipient_id': recipientId, 'message': message}),
+      );
+      final data = json.decode(response.body);
+      return {'success': response.statusCode == 201, 'conversation_id': data['conversation_id'], 'message': data['message'] ?? ''};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getContacts() async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/messaging/contacts'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      final data = json.decode(response.body);
+      return {'success': data['success'] == true, 'contacts': data['contacts'] ?? []};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  // ========== EVALUATIONS ANNUELLES ==========
+
+  Future<Map<String, dynamic>> getEvaluations() async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/evaluations'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      final data = json.decode(response.body);
+      return {'success': data['success'] == true, 'evaluations': data['evaluations'] ?? []};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getEvaluationDetail(int id) async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/evaluations/$id'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      final data = json.decode(response.body);
+      return {'success': data['success'] == true, 'evaluation': data['evaluation'], 'criteria': data['criteria'] ?? []};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> submitSelfEvaluation(int id, {required List<Map<String, dynamic>> scores, String? comments}) async {
+    try {
+      final response = await _post(
+        Uri.parse('${ApiConstants.baseUrl}/evaluations/$id/self-evaluate'),
+        headers: await _getHeaders(includeAuth: true),
+        body: json.encode({'scores': scores, 'comments': comments}),
+      );
+      final data = json.decode(response.body);
+      return {'success': data['success'] == true, 'message': data['message'] ?? ''};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  // ========== CNPS ==========
+
+  Future<Map<String, dynamic>> getCnpsRecord() async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/cnps/record'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      final data = json.decode(response.body);
+      return {'success': data['success'] == true, 'record': data['record']};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getCnpsContributions({int? year}) async {
+    try {
+      final url = year != null
+          ? '${ApiConstants.baseUrl}/cnps/contributions?year=$year'
+          : '${ApiConstants.baseUrl}/cnps/contributions';
+      final response = await _get(
+        Uri.parse(url),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      final data = json.decode(response.body);
+      return {
+        'success': data['success'] == true,
+        'year': data['year'],
+        'contributions': data['contributions'] ?? [],
+        'totals': data['totals'],
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  // ========== ORGANIGRAMME ==========
+
+  Future<Map<String, dynamic>> getOrgChartDepartments() async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/orgchart/departments'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      final data = json.decode(response.body);
+      return {'success': data['success'] == true, 'departments': data['departments'] ?? []};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getDepartmentMembers(int departmentId) async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/orgchart/departments/$departmentId/members'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      final data = json.decode(response.body);
+      return {'success': data['success'] == true, 'department': data['department'], 'members': data['members'] ?? []};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getMyHierarchy() async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/orgchart/my-hierarchy'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      final data = json.decode(response.body);
+      return {
+        'success': data['success'] == true,
+        'me': data['me'],
+        'manager': data['manager'],
+        'subordinates': data['subordinates'] ?? [],
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  // ========== ONBOARDING ==========
+
+  Future<Map<String, dynamic>> getOnboardingProcesses() async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/onboarding'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      final data = json.decode(response.body);
+      return {'success': data['success'] == true, 'processes': data['processes'] ?? []};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getOnboardingDetail(int id) async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/onboarding/$id'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      final data = json.decode(response.body);
+      return {'success': data['success'] == true, 'process': data['process'], 'tasks': data['tasks'] ?? []};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> completeOnboardingTask(int processId, int taskId, {String? notes}) async {
+    try {
+      final response = await _post(
+        Uri.parse('${ApiConstants.baseUrl}/onboarding/$processId/tasks/$taskId/complete'),
+        headers: await _getHeaders(includeAuth: true),
+        body: json.encode({'notes': notes}),
+      );
+      final data = json.decode(response.body);
+      return {'success': data['success'] == true, 'message': data['message'] ?? '', 'process_completed': data['process_completed'] ?? false};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  // ========== RECRUTEMENT ==========
+
+  Future<Map<String, dynamic>> getJobPostings({String? departmentId, String? contractType}) async {
+    try {
+      var url = '${ApiConstants.baseUrl}/recruitment/postings';
+      final params = <String>[];
+      if (departmentId != null) params.add('department_id=$departmentId');
+      if (contractType != null) params.add('contract_type=$contractType');
+      if (params.isNotEmpty) url += '?${params.join('&')}';
+
+      final response = await _get(Uri.parse(url), headers: await _getHeaders(includeAuth: true));
+      final data = json.decode(response.body);
+      return {'success': data['success'] == true, 'postings': data['postings'] ?? []};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getJobPostingDetail(int id) async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/recruitment/postings/$id'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      final data = json.decode(response.body);
+      return {'success': data['success'] == true, 'posting': data['posting']};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> applyToJob(int postingId, {required String name, required String email, String? phone, String? coverLetter}) async {
+    try {
+      final response = await _post(
+        Uri.parse('${ApiConstants.baseUrl}/recruitment/postings/$postingId/apply'),
+        headers: await _getHeaders(includeAuth: true),
+        body: json.encode({'candidate_name': name, 'candidate_email': email, 'candidate_phone': phone, 'cover_letter': coverLetter}),
+      );
+      final data = json.decode(response.body);
+      return {'success': data['success'] == true || response.statusCode == 201, 'message': data['message'] ?? ''};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getRecruitmentPipeline(int postingId) async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/recruitment/postings/$postingId/pipeline'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      final data = json.decode(response.body);
+      return {'success': data['success'] == true, 'posting': data['posting'], 'applications': data['applications'] ?? [], 'pipeline_stats': data['pipeline_stats'], 'total': data['total']};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  // ========== FORMATION / E-LEARNING ==========
+
+  Future<Map<String, dynamic>> getTrainingCatalog({String? category, String? type, String? level}) async {
+    try {
+      var url = '${ApiConstants.baseUrl}/training/catalog';
+      final params = <String>[];
+      if (category != null) params.add('category=$category');
+      if (type != null) params.add('type=$type');
+      if (level != null) params.add('level=$level');
+      if (params.isNotEmpty) url += '?${params.join('&')}';
+
+      final response = await _get(Uri.parse(url), headers: await _getHeaders(includeAuth: true));
+      final data = json.decode(response.body);
+      return {'success': data['success'] == true, 'programs': data['programs'] ?? [], 'categories': data['categories'] ?? []};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getMyTrainingEnrollments() async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/training/my-enrollments'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      final data = json.decode(response.body);
+      return {'success': data['success'] == true, 'enrollments': data['enrollments'] ?? []};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getTrainingProgramDetail(int id) async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/training/programs/$id'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      final data = json.decode(response.body);
+      return {'success': data['success'] == true, 'program': data['program'], 'enrollment': data['enrollment'], 'materials': data['materials'] ?? [], 'sessions': data['sessions'] ?? []};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> enrollInTraining(int programId, {int? sessionId}) async {
+    try {
+      final response = await _post(
+        Uri.parse('${ApiConstants.baseUrl}/training/programs/$programId/enroll'),
+        headers: await _getHeaders(includeAuth: true),
+        body: json.encode({'session_id': sessionId}),
+      );
+      final data = json.decode(response.body);
+      return {'success': data['success'] == true || response.statusCode == 201, 'message': data['message'] ?? ''};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> completeTrainingMaterial(int programId, int materialId, {double? score}) async {
+    try {
+      final response = await _post(
+        Uri.parse('${ApiConstants.baseUrl}/training/programs/$programId/materials/$materialId/complete'),
+        headers: await _getHeaders(includeAuth: true),
+        body: json.encode({'score': score}),
+      );
+      final data = json.decode(response.body);
+      return {'success': data['success'] == true, 'progress': data['progress'], 'program_completed': data['program_completed'] ?? false};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  // ========== ANALYTICS RH ==========
+
+  Future<Map<String, dynamic>> getHrDashboard() async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/analytics/dashboard'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      final data = json.decode(response.body);
+      return {'success': data['success'] == true, 'dashboard': data['dashboard']};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getHrTrends({int months = 6}) async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/analytics/trends?months=$months'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      final data = json.decode(response.body);
+      return {'success': data['success'] == true, 'trends': data['trends'] ?? []};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getDepartmentAnalytics(int departmentId) async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/analytics/department/$departmentId'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      final data = json.decode(response.body);
+      return {'success': data['success'] == true, 'department': data['department'], 'stats': data['stats']};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
     }
   }
 }
