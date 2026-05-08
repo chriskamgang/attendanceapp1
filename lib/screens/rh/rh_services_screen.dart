@@ -7,6 +7,11 @@ import '../messaging/conversations_screen.dart';
 import '../profile/salary_advance_screen.dart';
 import '../profile/wallet_screen.dart';
 import '../profile/edit_profile_screen.dart';
+import '../evaluations/evaluations_screen.dart';
+import '../cnps/cnps_screen.dart';
+import '../orgchart/orgchart_screen.dart';
+import '../training/training_screen.dart';
+import '../analytics/hr_analytics_screen.dart';
 
 class RhServicesScreen extends StatelessWidget {
   const RhServicesScreen({super.key});
@@ -78,6 +83,44 @@ class RhServicesScreen extends StatelessWidget {
                 label: 'Avance\nsur salaire',
                 color: const Color(0xFF00695C),
                 onTap: () => _navigate(context, const SalaryAdvanceScreen()),
+              ),
+              _ServiceItem(
+                icon: Icons.shield_outlined,
+                label: 'CNPS',
+                color: const Color(0xFF2E7D32),
+                onTap: () => _navigate(context, const CnpsScreen()),
+              ),
+            ]),
+
+            const SizedBox(height: 24),
+
+            // Section Carriere
+            _buildSectionTitle('Carriere & Developpement'),
+            const SizedBox(height: 10),
+            _buildGrid(context, [
+              _ServiceItem(
+                icon: Icons.star_border_rounded,
+                label: 'Evaluations',
+                color: const Color(0xFFF57F17),
+                onTap: () => _navigate(context, const EvaluationsScreen()),
+              ),
+              _ServiceItem(
+                icon: Icons.school_rounded,
+                label: 'Formations',
+                color: const Color(0xFF6A1B9A),
+                onTap: () => _navigate(context, const TrainingScreen()),
+              ),
+              _ServiceItem(
+                icon: Icons.account_tree_rounded,
+                label: 'Organigramme',
+                color: const Color(0xFF00838F),
+                onTap: () => _navigate(context, const OrgChartScreen()),
+              ),
+              _ServiceItem(
+                icon: Icons.bar_chart_rounded,
+                label: 'Analytique\nRH',
+                color: const Color(0xFFD84315),
+                onTap: () => _navigate(context, const HrAnalyticsScreen()),
               ),
             ]),
 
