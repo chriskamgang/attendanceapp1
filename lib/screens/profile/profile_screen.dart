@@ -26,6 +26,7 @@ import '../onboarding/onboarding_screen.dart';
 import '../recruitment/recruitment_screen.dart';
 import '../training/training_screen.dart';
 import '../analytics/hr_analytics_screen.dart';
+import '../tasks/task_list_screen.dart';
 
 import 'package:image_picker/image_picker.dart';
 import '../../models/user.dart';
@@ -349,6 +350,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                           const SizedBox(height: 16),
                         ],
+
+                        // Bouton Mes Taches
+                        _buildTasksButton(),
+                        const SizedBox(height: 16),
                         ],
                       ]),
                     ),
@@ -766,6 +771,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== TASKS BUTTON =====
+  Widget _buildTasksButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF5C6BC0), Color(0xFF3949AB)],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF5C6BC0).withAlpha(76),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const TaskListScreen()),
+            );
+          },
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(51),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.task_alt, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Mes Taches', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      SizedBox(height: 2),
+                      Text('Voir et gerer vos taches assignees', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 16),
               ],
             ),
           ),

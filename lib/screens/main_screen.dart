@@ -7,7 +7,7 @@ import 'home/student_home_screen.dart';
 import 'attendance/history_screen.dart';
 import 'profile/profile_screen.dart';
 import 'moratoire/moratoire_screen.dart';
-import 'tasks/task_list_screen.dart';
+import 'tickets/tickets_screen.dart';
 import 'rh/rh_services_screen.dart';
 import '../services/location_tracking_service.dart';
 import '../services/biometric_service.dart';
@@ -37,7 +37,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     return [
       const HomeScreen(),
       const HistoryScreen(),
-      const TaskListScreen(),
+      const TicketsScreen(),
       const RhServicesScreen(),
       const ProfileScreen(),
     ];
@@ -190,8 +190,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         )
       else ...[
         const BottomNavigationBarItem(
-          icon: Icon(Icons.task_alt),
-          label: 'Taches',
+          icon: Icon(Icons.confirmation_number_rounded),
+          label: 'Tickets',
         ),
         const BottomNavigationBarItem(
           icon: Icon(Icons.business_center_rounded),
