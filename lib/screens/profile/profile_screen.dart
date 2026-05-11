@@ -305,6 +305,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         if (user?.isStudent() ?? false)
                           ..._buildStudentProfile(user)
                         else ...[
+                          // Bouton Mes Taches
+                          _buildTasksButton(),
+                          const SizedBox(height: 16),
+
                           // Net salary highlight card
                           _buildNetSalaryCard(),
 
@@ -351,9 +355,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 16),
                         ],
 
-                        // Bouton Mes Taches
-                        _buildTasksButton(),
-                        const SizedBox(height: 16),
                         ],
                       ]),
                     ),
