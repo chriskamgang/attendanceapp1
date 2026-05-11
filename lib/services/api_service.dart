@@ -592,6 +592,7 @@ class ApiService {
         'accuracy': accuracy,
         'offline_timestamp': offlineTimestamp,
         'is_offline': true,
+        'type': 'check-in',
       };
       if (uniteEnseignementId != null) {
         body['unite_enseignement_id'] = uniteEnseignementId;
@@ -2235,6 +2236,77 @@ class ApiService {
       );
       final data = json.decode(response.body);
       return {'success': data['success'] == true, 'department': data['department'], 'stats': data['stats']};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  // ========== TICKETS ==========
+
+  Future<Map<String, dynamic>> getTickets() async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/tickets'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+      final data = json.decode(response.body);
+      return {'success': response.statusCode == 200, 'tickets': data['tickets'] ?? []};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e', 'tickets': []};
+    }
+  }
+
+  Future<Map<String, dynamic>> createTicket({
+    required String category,
+    required String targetService,
+    required String subject,
+    required String description,
+  }) async {
+    try {
+      final response = await _post(
+        Uri.parse('${ApiConstants.baseUrl}/tickets'),
+        headers: await _getHeaders(includeAuth: true),
+        body: json.encode({
+          'category': category,
+          'target_service': targetService,
+          'subject': subject,
+          'description': description,
+        }),
+      );
+      final data = json.decode(response.body);
+      return {
+        'success': response.statusCode == 201,
+        'message': data['message'] ?? '',
+        'ticket': data['ticket'],
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> addTicketComment(dynamic ticketId, String comment) async {
+    try {
+      final response = await _post(
+        Uri.parse('${ApiConstants.baseUrl}/tickets/$ticketId/comment'),
+        headers: await _getHeaders(includeAuth: true),
+        body: json.encode({'comment': comment}),
+      );
+      final data = json.decode(response.body);
+      return {'success': response.statusCode == 201, 'message': data['message'] ?? ''};
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> rateTicket(dynamic ticketId, int rating) async {
+    try {
+      final response = await _post(
+        Uri.parse('${ApiConstants.baseUrl}/tickets/$ticketId/rate'),
+        headers: await _getHeaders(includeAuth: true),
+        body: json.encode({'rating': rating}),
+      );
+      final data = json.decode(response.body);
+      return {'success': response.statusCode == 200, 'message': data['message'] ?? ''};
     } catch (e) {
       return {'success': false, 'message': 'Erreur: $e'};
     }

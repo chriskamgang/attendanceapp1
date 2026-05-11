@@ -12,6 +12,7 @@ import '../cnps/cnps_screen.dart';
 import '../orgchart/orgchart_screen.dart';
 import '../training/training_screen.dart';
 import '../analytics/hr_analytics_screen.dart';
+import '../tickets/tickets_screen.dart';
 
 class RhServicesScreen extends StatelessWidget {
   const RhServicesScreen({super.key});
@@ -130,6 +131,12 @@ class RhServicesScreen extends StatelessWidget {
             _buildSectionTitle('Communication'),
             const SizedBox(height: 10),
             _buildGrid(context, [
+              _ServiceItem(
+                icon: Icons.confirmation_number_rounded,
+                label: 'Tickets',
+                color: const Color(0xFF0D47A1),
+                onTap: () => _navigate(context, const TicketsScreen()),
+              ),
               _ServiceItem(
                 icon: Icons.chat_bubble_outline_rounded,
                 label: 'Messagerie',

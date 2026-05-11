@@ -442,10 +442,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (!mounted) return;
                 final synced = result['synced'] ?? 0;
                 final failed = result['failed'] ?? 0;
+                final errors = result['errors'] as List<String>? ?? [];
+                final errorDetail = errors.isNotEmpty ? '\n${errors.first}' : '';
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('$synced synchronise(s), $failed echoue(s)'),
+                    content: Text('$synced synchronise(s), $failed echoue(s)$errorDetail'),
                     backgroundColor: failed == 0 ? Colors.green : Colors.orange,
+                    duration: Duration(seconds: failed > 0 ? 5 : 3),
                   ),
                 );
               },

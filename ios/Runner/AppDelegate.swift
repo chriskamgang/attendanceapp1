@@ -11,9 +11,11 @@ import FirebaseMessaging
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     // Configurer Firebase en natif (nécessaire pour les push notifications iOS)
-    FirebaseApp.configure()
+    if FirebaseApp.app() == nil {
+      FirebaseApp.configure()
+    }
 
-    // TODO: Remplacez YOUR_GOOGLE_MAPS_API_KEY par votre vraie clé API
+    // Google Maps
     GMSServices.provideAPIKey("YOUR_GOOGLE_MAPS_API_KEY")
     GeneratedPluginRegistrant.register(with: self)
 
