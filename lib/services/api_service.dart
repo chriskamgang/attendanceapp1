@@ -2250,9 +2250,14 @@ class ApiService {
         headers: await _getHeaders(includeAuth: true),
       );
       final data = json.decode(response.body);
-      return {'success': response.statusCode == 200, 'tickets': data['tickets'] ?? []};
+      return {
+        'success': response.statusCode == 200,
+        'tickets': data['tickets'] ?? [],
+        'services': data['services'] ?? {},
+        'categories': data['categories'] ?? {},
+      };
     } catch (e) {
-      return {'success': false, 'message': 'Erreur: $e', 'tickets': []};
+      return {'success': false, 'message': 'Erreur: $e', 'tickets': [], 'services': {}, 'categories': {}};
     }
   }
 

@@ -14,6 +14,8 @@ class TicketsScreen extends StatefulWidget {
 class _TicketsScreenState extends State<TicketsScreen> {
   final ApiService _apiService = ApiService();
   List<dynamic> _tickets = [];
+  Map<String, dynamic> _services = {};
+  Map<String, dynamic> _categories = {};
   bool _isLoading = true;
 
   @override
@@ -30,6 +32,8 @@ class _TicketsScreenState extends State<TicketsScreen> {
       if (result['success'] == true) {
         setState(() {
           _tickets = result['tickets'] ?? [];
+          if (result['services'] is Map) _services = Map<String, dynamic>.from(result['services']);
+          if (result['categories'] is Map) _categories = Map<String, dynamic>.from(result['categories']);
         });
       }
     } catch (e) {
@@ -62,7 +66,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
         onPressed: () async {
           final result = await Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const CreateTicketScreen()),
+            MaterialPageRoute(builder: (_) => CreateTicketScreen(services: _services, categories: _categories)),
           );
           if (result == true) _loadTickets();
         },
@@ -93,7 +97,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
             onPressed: () async {
               final result = await Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const CreateTicketScreen()),
+                MaterialPageRoute(builder: (_) => CreateTicketScreen(services: _services, categories: _categories)),
               );
               if (result == true) _loadTickets();
             },
