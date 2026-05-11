@@ -2266,25 +2266,42 @@ class ApiService {
     required String targetService,
     required String subject,
     required String description,
+    String? attachmentPath,
   }) async {
     try {
-      final response = await _post(
-        Uri.parse('${ApiConstants.baseUrl}/tickets'),
-        headers: await _getHeaders(includeAuth: true),
-        body: json.encode({
-          'category': category,
-          'target_service': targetService,
-          'subject': subject,
-          'description': description,
-        }),
+      final token = await _storageService.getToken();
+      final dio = dio_pkg.Dio();
+
+      final formData = dio_pkg.FormData.fromMap({
+        'category': category,
+        'target_service': targetService,
+        'subject': subject,
+        'description': description,
+        if (attachmentPath != null)
+          'attachment': await dio_pkg.MultipartFile.fromFile(attachmentPath),
+      });
+
+      final response = await dio.post(
+        '${ApiConstants.baseUrl}/tickets',
+        data: formData,
+        options: dio_pkg.Options(
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        ),
       );
-      final data = json.decode(response.body);
+
       return {
         'success': response.statusCode == 201,
-        'message': data['message'] ?? '',
-        'ticket': data['ticket'],
+        'message': response.data['message'] ?? '',
+        'ticket': response.data['ticket'],
       };
     } catch (e) {
+      if (e is dio_pkg.DioException && e.response != null) {
+        final data = e.response!.data;
+        return {'success': false, 'message': data['message'] ?? 'Erreur serveur'};
+      }
       return {'success': false, 'message': 'Erreur: $e'};
     }
   }

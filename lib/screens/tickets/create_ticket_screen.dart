@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../services/api_service.dart';
 
 class CreateTicketScreen extends StatefulWidget {
@@ -21,6 +23,8 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
   String? _selectedService;
   bool _isSubmitting = false;
   bool _isLoading = true;
+  File? _attachment;
+  String? _attachmentName;
 
   Map<String, String> _categories = {};
   Map<String, String> _services = {};
@@ -107,6 +111,48 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
     return _serviceColors[slug] ?? Colors.blueGrey;
   }
 
+  Future<void> _pickAttachment() async {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Prendre une photo'),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final picker = ImagePicker();
+                final photo = await picker.pickImage(source: ImageSource.camera, imageQuality: 70);
+                if (photo != null) {
+                  setState(() {
+                    _attachment = File(photo.path);
+                    _attachmentName = photo.name;
+                  });
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choisir depuis la galerie'),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final picker = ImagePicker();
+                final image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+                if (image != null) {
+                  setState(() {
+                    _attachment = File(image.path);
+                    _attachmentName = image.name;
+                  });
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCategory == null || _selectedService == null) {
@@ -124,6 +170,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
         targetService: _selectedService!,
         subject: _subjectController.text.trim(),
         description: _descriptionController.text.trim(),
+        attachmentPath: _attachment?.path,
       );
 
       if (!mounted) return;
@@ -275,6 +322,67 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                       maxLength: 3000,
                       validator: (v) => (v == null || v.trim().isEmpty) ? 'Requis' : null,
                     ),
+
+                    const SizedBox(height: 16),
+
+                    // Piece jointe
+                    OutlinedButton.icon(
+                      onPressed: _pickAttachment,
+                      icon: const Icon(Icons.attach_file),
+                      label: const Text('Ajouter une piece jointe'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        side: BorderSide(color: Colors.grey[400]!),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      ),
+                    ),
+                    if (_attachment != null) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.grey[300]!),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.image, size: 20, color: Colors.blue),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _attachmentName ?? 'Fichier',
+                                    style: const TextStyle(fontSize: 13),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () => setState(() {
+                                    _attachment = null;
+                                    _attachmentName = null;
+                                  }),
+                                  child: const Icon(Icons.close, size: 20, color: Colors.red),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.file(
+                                _attachment!,
+                                height: 150,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
 
                     const SizedBox(height: 24),
 
