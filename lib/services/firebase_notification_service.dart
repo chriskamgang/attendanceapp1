@@ -32,6 +32,7 @@ class FirebaseNotificationService {
   Function(Map<String, dynamic>)? onPresenceCheckReceived;
   Function(Map<String, dynamic>)? onGeofenceEntryTapped;
   Function(Map<String, dynamic>)? onMoratoriumTapped;
+  Function(Map<String, dynamic>)? onTicketUpdateTapped;
 
   /// Initialiser Firebase et les notifications
   Future<void> initialize() async {
@@ -145,6 +146,17 @@ class FirebaseNotificationService {
           'task_channel',
           'Taches',
           description: 'Notifications de nouvelles taches',
+          importance: Importance.high,
+          playSound: true,
+          enableVibration: true,
+        ),
+      );
+
+      await androidPlugin.createNotificationChannel(
+        const AndroidNotificationChannel(
+          'ticket_channel',
+          'Tickets',
+          description: 'Notifications de suivi des tickets',
           importance: Importance.high,
           playSound: true,
           enableVibration: true,
@@ -325,6 +337,22 @@ class FirebaseNotificationService {
         // Notification de statut de moratoire
         if (onMoratoriumTapped != null) {
           onMoratoriumTapped!(data);
+        }
+        break;
+
+      case 'ticket_update':
+        // Notification de mise à jour de ticket
+        print('🎫 Notification ticket reçue: ${data['ticket_id']}');
+        if (onTicketUpdateTapped != null) {
+          onTicketUpdateTapped!(data);
+        }
+        break;
+
+      case 'ticket':
+        // Notification ticket (autre format)
+        print('🎫 Notification ticket reçue');
+        if (onTicketUpdateTapped != null) {
+          onTicketUpdateTapped!(data);
         }
         break;
 

@@ -8,6 +8,7 @@ import 'screens/auth/login_screen.dart';
 import 'screens/main_screen.dart';
 import 'screens/attendance/check_in_screen.dart';
 import 'screens/moratoire/moratoire_screen.dart';
+import 'screens/tickets/tickets_screen.dart';
 import 'services/storage_service.dart';
 import 'services/location_service.dart';
 import 'services/firebase_notification_service.dart';
@@ -139,6 +140,14 @@ class _MyAppState extends State<MyApp> {
         navigatorKey.currentState?.push(
           MaterialPageRoute(
             builder: (context) => const MoratoireScreen(),
+          ),
+        );
+      };
+
+      FirebaseNotificationService().onTicketUpdateTapped = (data) {
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (context) => const TicketsScreen(),
           ),
         );
       };

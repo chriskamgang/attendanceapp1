@@ -19,8 +19,8 @@ class LocationService {
         permission == LocationPermission.whileInUse;
   }
 
-  /// Obtenir la position actuelle - FORCE le GPS hardware (pas de cache)
-  Future<Position?> getCurrentPosition() async {
+  /// Obtenir la position actuelle - rapide, utilise le cache si récent
+  Future<Position?> getCurrentPosition({bool forceRefresh = false}) async {
     try {
       bool serviceEnabled = await isLocationServiceEnabled();
       if (!serviceEnabled) {
@@ -35,53 +35,45 @@ class LocationService {
         }
       }
 
-      // Récupérer la position en cache pour comparer après
-      Position? cachedPosition;
-      try {
-        cachedPosition = await Geolocator.getLastKnownPosition();
-      } catch (_) {}
+      // D'abord essayer la position en cache (instantané)
+      if (!forceRefresh) {
+        try {
+          final cached = await Geolocator.getLastKnownPosition();
+          if (cached != null) {
+            final age = DateTime.now().difference(cached.timestamp).inSeconds;
+            if (age <= 30 && cached.accuracy <= 100) {
+              print('GPS CACHE: ${cached.latitude}, ${cached.longitude} (précision: ${cached.accuracy}m, age: ${age}s)');
+              return cached;
+            }
+          }
+        } catch (_) {}
+      }
 
-      // METHODE 1 : Stream GPS avec forceLocationManager (bypass cache Google)
+      // Méthode rapide : getCurrentPosition direct avec timeout court
+      try {
+        Position pos = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 8),
+        );
+        print('GPS DIRECT: ${pos.latitude}, ${pos.longitude} (précision: ${pos.accuracy}m)');
+        return pos;
+      } catch (e) {
+        print('GPS direct échoué: $e');
+      }
+
+      // Fallback : Stream GPS hardware (plus fiable mais plus lent)
       Position? freshPosition = await _getHardwareGPSPosition();
-      if (freshPosition != null && _isPositionFresh(freshPosition, cachedPosition)) {
+      if (freshPosition != null) {
         print('GPS HARDWARE: ${freshPosition.latitude}, ${freshPosition.longitude} (précision: ${freshPosition.accuracy}m)');
         return freshPosition;
       }
 
-      // METHODE 2 : Stream GPS normal (Fused Location Provider)
-      Position? streamPosition = await _getStreamGPSPosition();
-      if (streamPosition != null && _isPositionFresh(streamPosition, cachedPosition)) {
-        print('GPS STREAM: ${streamPosition.latitude}, ${streamPosition.longitude} (précision: ${streamPosition.accuracy}m)');
-        return streamPosition;
-      }
+      // Dernier recours : position en cache même ancienne
+      try {
+        return await Geolocator.getLastKnownPosition();
+      } catch (_) {}
 
-      // METHODE 3 : getCurrentPosition direct
-      for (int attempt = 1; attempt <= 3; attempt++) {
-        try {
-          Position pos = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.best,
-            timeLimit: const Duration(seconds: 15),
-          );
-
-          final age = DateTime.now().difference(pos.timestamp).inSeconds;
-          print('GPS tentative $attempt: ${pos.latitude}, ${pos.longitude} (précision: ${pos.accuracy}m, age: ${age}s)');
-
-          if (age <= 15 && pos.accuracy <= 100) {
-            return pos;
-          }
-
-          // Même si pas parfait, garder comme meilleur résultat
-          if (freshPosition == null || pos.accuracy < freshPosition.accuracy) {
-            freshPosition = pos;
-          }
-        } catch (e) {
-          print('GPS tentative $attempt échouée: $e');
-        }
-        if (attempt < 3) await Future.delayed(const Duration(seconds: 2));
-      }
-
-      // Retourner la meilleure position trouvée, ou la position en cache en dernier recours
-      return freshPosition ?? streamPosition ?? cachedPosition;
+      return null;
     } catch (e) {
       print('Erreur GPS: $e');
       return null;
@@ -146,8 +138,8 @@ class LocationService {
         if (!completer.isCompleted) completer.complete(null);
       });
 
-      // Timeout 12 secondes
-      Future.delayed(const Duration(seconds: 12), () {
+      // Timeout 6 secondes
+      Future.delayed(const Duration(seconds: 6), () {
         if (!completer.isCompleted) completer.complete(bestPosition);
       });
 

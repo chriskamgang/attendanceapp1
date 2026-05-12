@@ -37,7 +37,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
   bool _isLoadingUnites = false;
   List<Map<String, dynamic>> _rawUeData = [];
   int _locationRetryCount = 0;
-  static const int _maxAutoRetries = 5;
+  static const int _maxAutoRetries = 2;
 
   @override
   void initState() {
@@ -182,9 +182,11 @@ class _CheckInScreenState extends State<CheckInScreen> {
     final attendanceProvider =
         Provider.of<AttendanceProvider>(context, listen: false);
 
+    // Passer la position déjà connue pour éviter un 2ème appel GPS
     final result = await attendanceProvider.checkIn(
       widget.campus,
       uniteEnseignementId: _selectedUnite?.id,
+      knownPosition: _currentPosition,
     );
 
     if (!mounted) return;
@@ -211,7 +213,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
     final attendanceProvider =
         Provider.of<AttendanceProvider>(context, listen: false);
 
-    final result = await attendanceProvider.checkOut(widget.campus);
+    final result = await attendanceProvider.checkOut(widget.campus, knownPosition: _currentPosition);
 
     if (!mounted) return;
 

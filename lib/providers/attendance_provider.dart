@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import '../models/attendance.dart';
 import '../models/campus.dart';
 import '../services/api_service.dart';
@@ -42,13 +43,13 @@ class AttendanceProvider with ChangeNotifier {
   }
 
   // Check-in
-  Future<Map<String, dynamic>> checkIn(Campus campus, {int? uniteEnseignementId}) async {
+  Future<Map<String, dynamic>> checkIn(Campus campus, {int? uniteEnseignementId, Position? knownPosition}) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      // Obtenir la position (GPS fonctionne sans internet)
-      var position = await _locationService.getCurrentPosition();
+      // Utiliser la position déjà connue si disponible, sinon obtenir une nouvelle
+      var position = knownPosition ?? await _locationService.getCurrentPosition();
       if (position == null) {
         _isLoading = false;
         notifyListeners();
@@ -126,13 +127,13 @@ class AttendanceProvider with ChangeNotifier {
   }
 
   // Check-out
-  Future<Map<String, dynamic>> checkOut(Campus campus) async {
+  Future<Map<String, dynamic>> checkOut(Campus campus, {Position? knownPosition}) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      // Obtenir la position
-      var position = await _locationService.getCurrentPosition();
+      // Utiliser la position déjà connue si disponible, sinon obtenir une nouvelle
+      var position = knownPosition ?? await _locationService.getCurrentPosition();
       if (position == null) {
         _isLoading = false;
         notifyListeners();
