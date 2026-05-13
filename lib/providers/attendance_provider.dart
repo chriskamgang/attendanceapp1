@@ -23,36 +23,41 @@ class AttendanceProvider with ChangeNotifier {
   bool get isOnline => _offlineQueue.isOnline;
   OfflineQueueService get offlineQueue => _offlineQueue;
 
+  void _setLoading(bool value) {
+    if (_isLoading != value) {
+      _isLoading = value;
+      notifyListeners();
+    }
+  }
+
   // Vérifier le statut actuel
   Future<void> checkCurrentStatus() async {
-    _isLoading = true;
-    notifyListeners();
-
     try {
       final result = await _apiService.getCurrentStatus();
       if (result['success']) {
         _hasActiveCheckIn = result['has_active_checkin'];
         _activeCheckIns = result['active_checkins'];
+        notifyListeners();
       }
     } catch (e) {
       print('Erreur checkCurrentStatus: $e');
     }
+  }
 
-    _isLoading = false;
-    notifyListeners();
+  // Rafraîchir statut + pointages du jour en parallèle
+  Future<void> refreshStatus() async {
+    await Future.wait([checkCurrentStatus(), getTodayAttendances()]);
   }
 
   // Check-in
   Future<Map<String, dynamic>> checkIn(Campus campus, {int? uniteEnseignementId, Position? knownPosition}) async {
-    _isLoading = true;
-    notifyListeners();
+    _setLoading(true);
 
     try {
       // Utiliser la position déjà connue si disponible, sinon obtenir une nouvelle
       var position = knownPosition ?? await _locationService.getCurrentPosition();
       if (position == null) {
-        _isLoading = false;
-        notifyListeners();
+        _setLoading(false);
         return {
           'success': false,
           'message': 'Impossible d\'obtenir votre position'
@@ -74,8 +79,7 @@ class AttendanceProvider with ChangeNotifier {
           position.latitude, position.longitude,
           campus.latitude, campus.longitude,
         );
-        _isLoading = false;
-        notifyListeners();
+        _setLoading(false);
         return {
           'success': false,
           'message':
@@ -94,8 +98,7 @@ class AttendanceProvider with ChangeNotifier {
           uniteEnseignementId: uniteEnseignementId,
         );
 
-        _isLoading = false;
-        notifyListeners();
+        _setLoading(false);
         return {
           'success': true,
           'message': 'Check-in enregistré hors-ligne. Il sera synchronisé automatiquement.',
@@ -112,31 +115,28 @@ class AttendanceProvider with ChangeNotifier {
         uniteEnseignementId: uniteEnseignementId,
       );
 
+      // Rafraîchir en arrière-plan sans bloquer le retour
       if (result['success']) {
-        await Future.wait([checkCurrentStatus(), getTodayAttendances()]);
+        refreshStatus();
       }
 
-      _isLoading = false;
-      notifyListeners();
+      _setLoading(false);
       return result;
     } catch (e) {
-      _isLoading = false;
-      notifyListeners();
+      _setLoading(false);
       return {'success': false, 'message': 'Erreur: $e'};
     }
   }
 
   // Check-out
   Future<Map<String, dynamic>> checkOut(Campus campus, {Position? knownPosition}) async {
-    _isLoading = true;
-    notifyListeners();
+    _setLoading(true);
 
     try {
       // Utiliser la position déjà connue si disponible, sinon obtenir une nouvelle
       var position = knownPosition ?? await _locationService.getCurrentPosition();
       if (position == null) {
-        _isLoading = false;
-        notifyListeners();
+        _setLoading(false);
         return {
           'success': false,
           'message': 'Impossible d\'obtenir votre position'
@@ -153,8 +153,7 @@ class AttendanceProvider with ChangeNotifier {
           accuracy: position.accuracy,
         );
 
-        _isLoading = false;
-        notifyListeners();
+        _setLoading(false);
         return {
           'success': true,
           'message': 'Check-out enregistré hors-ligne. Il sera synchronisé automatiquement.',
@@ -170,16 +169,15 @@ class AttendanceProvider with ChangeNotifier {
         accuracy: position.accuracy,
       );
 
+      // Rafraîchir en arrière-plan sans bloquer le retour
       if (result['success']) {
-        await Future.wait([checkCurrentStatus(), getTodayAttendances()]);
+        refreshStatus();
       }
 
-      _isLoading = false;
-      notifyListeners();
+      _setLoading(false);
       return result;
     } catch (e) {
-      _isLoading = false;
-      notifyListeners();
+      _setLoading(false);
       return {'success': false, 'message': 'Erreur: $e'};
     }
   }
@@ -188,7 +186,7 @@ class AttendanceProvider with ChangeNotifier {
   Future<Map<String, dynamic>> syncOfflineActions() async {
     final result = await _offlineQueue.syncPendingActions();
     if (result['synced'] != null && result['synced'] > 0) {
-      await Future.wait([checkCurrentStatus(), getTodayAttendances()]);
+      refreshStatus();
     }
     notifyListeners();
     return result;

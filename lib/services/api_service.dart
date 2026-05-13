@@ -18,12 +18,15 @@ class ApiService {
   final StorageService _storageService = StorageService();
   final OfflineCacheService _cache = OfflineCacheService();
 
-  // Client HTTP avec timeout pour éviter les blocages
-  http.Client _createClient() => http.Client();
+  // Client HTTP persistant pour réutiliser les connexions (keep-alive)
+  static final http.Client _client = http.Client();
+
+  // Cache du token en mémoire pour éviter les lectures répétées du storage
+  static String? _cachedToken;
 
   // Wrapper pour GET avec timeout de 15 secondes
   Future<http.Response> _get(Uri url, {required Map<String, String> headers}) {
-    return http.get(url, headers: headers).timeout(
+    return _client.get(url, headers: headers).timeout(
       const Duration(seconds: 15),
       onTimeout: () => http.Response('{"message": "Délai dépassé, vérifiez votre connexion"}', 408),
     );
@@ -31,7 +34,7 @@ class ApiService {
 
   // Wrapper pour POST avec timeout de 15 secondes
   Future<http.Response> _post(Uri url, {required Map<String, String> headers, String? body}) {
-    return http.post(url, headers: headers, body: body).timeout(
+    return _client.post(url, headers: headers, body: body).timeout(
       const Duration(seconds: 15),
       onTimeout: () => http.Response('{"message": "Délai dépassé, vérifiez votre connexion"}', 408),
     );
@@ -44,13 +47,19 @@ class ApiService {
     };
 
     if (includeAuth) {
-      String? token = await _storageService.getToken();
-      if (token != null) {
-        headers['Authorization'] = 'Bearer $token';
+      // Utiliser le token en cache mémoire si disponible
+      _cachedToken ??= await _storageService.getToken();
+      if (_cachedToken != null) {
+        headers['Authorization'] = 'Bearer $_cachedToken';
       }
     }
 
     return headers;
+  }
+
+  /// Invalider le cache du token (à appeler au login/logout)
+  static void clearTokenCache() {
+    _cachedToken = null;
   }
 
   // ========== USER PROFILE ==========
@@ -78,7 +87,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> data) async {
     try {
-      final response = await http.put(
+      final response = await _client.put(
         Uri.parse('${ApiConstants.baseUrl}/user/profile'),
         headers: await _getHeaders(includeAuth: true),
         body: json.encode(data),
@@ -397,7 +406,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> checkUpdate(String platform) async {
     try {
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse('${ApiConstants.baseUrl}${ApiConstants.checkUpdate}?platform=$platform'),
         headers: {'Accept': 'application/json'},
       ).timeout(
@@ -456,7 +465,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> logout() async {
     try {
-      final response = await http.post(
+      final response = await _client.post(
         Uri.parse('${ApiConstants.baseUrl}${ApiConstants.logout}'),
         headers: await _getHeaders(includeAuth: true),
       );
@@ -735,7 +744,7 @@ class ApiService {
     int? campusId,
   }) async {
     try {
-      final response = await http.post(
+      final response = await _client.post(
         Uri.parse('${ApiConstants.baseUrl}${ApiConstants.checkZone}'),
         headers: await _getHeaders(includeAuth: true),
         body: json.encode({
@@ -760,7 +769,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> getPendingChecks() async {
     try {
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse('${ApiConstants.baseUrl}${ApiConstants.pendingChecks}'),
         headers: await _getHeaders(includeAuth: true),
       );
@@ -786,7 +795,7 @@ class ApiService {
     required double longitude,
   }) async {
     try {
-      final httpResponse = await http.post(
+      final httpResponse = await _client.post(
         Uri.parse('${ApiConstants.baseUrl}${ApiConstants.respondCheck}'),
         headers: await _getHeaders(includeAuth: true),
         body: json.encode({
@@ -840,7 +849,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> updateFcmToken(String fcmToken) async {
     try {
-      final response = await http.post(
+      final response = await _client.post(
         Uri.parse('${ApiConstants.baseUrl}${ApiConstants.updateFcmToken}'),
         headers: await _getHeaders(includeAuth: true),
         body: json.encode({
@@ -860,7 +869,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> removeFcmToken() async {
     try {
-      final response = await http.post(
+      final response = await _client.post(
         Uri.parse('${ApiConstants.baseUrl}/user/remove-fcm-token'),
         headers: await _getHeaders(includeAuth: true),
       );
@@ -885,7 +894,7 @@ class ApiService {
 
       final url = '${ApiConstants.baseUrl}/user/salary-status?month=$targetMonth&year=$targetYear';
 
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse(url),
         headers: await _getHeaders(includeAuth: true),
       );
@@ -914,7 +923,7 @@ class ApiService {
         url += '?month=$month&year=$year';
       }
 
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse(url),
         headers: await _getHeaders(includeAuth: true),
       );
@@ -938,7 +947,7 @@ class ApiService {
         url += '?status=$status';
       }
 
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse(url),
         headers: await _getHeaders(includeAuth: true),
       );
@@ -959,7 +968,7 @@ class ApiService {
   /// Récupérer les incidents de présence en attente
   Future<Map<String, dynamic>> getPendingPresenceIncidents() async {
     try {
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse('${ApiConstants.baseUrl}/presence-notifications/pending'),
         headers: await _getHeaders(includeAuth: true),
       );
@@ -982,7 +991,7 @@ class ApiService {
     required double longitude,
   }) async {
     try {
-      final response = await http.post(
+      final response = await _client.post(
         Uri.parse('${ApiConstants.baseUrl}/presence-notifications/respond'),
         headers: await _getHeaders(includeAuth: true),
         body: json.encode({
@@ -1009,7 +1018,7 @@ class ApiService {
   /// Historique des incidents de présence
   Future<Map<String, dynamic>> getPresenceIncidentHistory({int page = 1}) async {
     try {
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse('${ApiConstants.baseUrl}/presence-notifications/history?page=$page'),
         headers: await _getHeaders(includeAuth: true),
       );
@@ -1027,7 +1036,7 @@ class ApiService {
   /// Statistiques de présence
   Future<Map<String, dynamic>> getPresenceStats() async {
     try {
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse('${ApiConstants.baseUrl}/presence-notifications/stats'),
         headers: await _getHeaders(includeAuth: true),
       );
@@ -1047,32 +1056,30 @@ class ApiService {
   /// Récupérer l'historique de mes présences
   Future<Map<String, dynamic>> getMyHistory() async {
     try {
-      final url = '${ApiConstants.baseUrl}${ApiConstants.attendanceHistory}';
-      print('🔍 Fetching history from: $url');
-
-      final response = await http.get(
-        Uri.parse(url),
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.attendanceHistory}'),
         headers: await _getHeaders(includeAuth: true),
       );
 
-      print('📡 Response status: ${response.statusCode}');
-      print('📦 Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        await _cache.cache('history', data['attendances'] ?? []);
         return {
           'success': true,
           'attendances': data['attendances'] ?? [],
         };
       } else {
-        print('❌ Error: Status ${response.statusCode}, Body: ${response.body}');
         return {
           'success': false,
           'message': 'Erreur lors du chargement de l\'historique (${response.statusCode})',
         };
       }
     } catch (e) {
-      print('💥 Exception: $e');
+      // Fallback sur le cache en cas d'erreur réseau
+      final cached = await _cache.getCached('history', maxAgeHours: 24);
+      if (cached != null) {
+        return {'success': true, 'attendances': cached, 'fromCache': true};
+      }
       return {
         'success': false,
         'message': 'Erreur réseau: $e',
@@ -1087,7 +1094,7 @@ class ApiService {
     try {
       final url = '${ApiConstants.baseUrl}/unites-enseignement';
 
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse(url),
         headers: await _getHeaders(includeAuth: true),
       );
@@ -1123,14 +1130,12 @@ class ApiService {
   Future<Map<String, dynamic>> getUnitesEnseignementActives() async {
     try {
       final url = '${ApiConstants.baseUrl}/unites-enseignement/actives';
-      print('🔍 Fetching active UE from: $url');
 
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse(url),
         headers: await _getHeaders(includeAuth: true),
       );
 
-      print('📡 Response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -1150,7 +1155,6 @@ class ApiService {
         };
       }
     } catch (e) {
-      print('💥 Exception: $e');
       return {
         'success': false,
         'message': 'Erreur réseau: $e',
@@ -1163,14 +1167,12 @@ class ApiService {
   Future<Map<String, dynamic>> getUniteEnseignement(int id) async {
     try {
       final url = '${ApiConstants.baseUrl}/unites-enseignement/$id';
-      print('🔍 Fetching UE details from: $url');
 
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse(url),
         headers: await _getHeaders(includeAuth: true),
       );
 
-      print('📡 Response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -1186,7 +1188,6 @@ class ApiService {
         };
       }
     } catch (e) {
-      print('💥 Exception: $e');
       return {
         'success': false,
         'message': 'Erreur réseau: $e',
@@ -1198,14 +1199,12 @@ class ApiService {
   Future<Map<String, dynamic>> getStatistiquesUE() async {
     try {
       final url = '${ApiConstants.baseUrl}/unites-enseignement/statistiques';
-      print('🔍 Fetching UE stats from: $url');
 
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse(url),
         headers: await _getHeaders(includeAuth: true),
       );
 
-      print('📡 Response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -1221,7 +1220,6 @@ class ApiService {
         };
       }
     } catch (e) {
-      print('💥 Exception: $e');
       return {
         'success': false,
         'message': 'Erreur réseau: $e',
@@ -1236,7 +1234,7 @@ class ApiService {
     try {
       final url = '${ApiConstants.baseUrl}${ApiConstants.mySchedule}';
 
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse(url),
         headers: await _getHeaders(includeAuth: true),
       );
@@ -1260,7 +1258,7 @@ class ApiService {
     try {
       final url = '${ApiConstants.baseUrl}${ApiConstants.todaySchedule}';
 
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse(url),
         headers: await _getHeaders(includeAuth: true),
       );
@@ -1289,7 +1287,7 @@ class ApiService {
     try {
       final url = '${ApiConstants.baseUrl}${ApiConstants.uesAvailableNow}';
 
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse(url),
         headers: await _getHeaders(includeAuth: true),
       );
@@ -1456,7 +1454,7 @@ class ApiService {
       };
 
       final headers = await _getHeaders(includeAuth: true);
-      final response = await http.put(
+      final response = await _client.put(
         Uri.parse('${ApiConstants.baseUrl}${ApiConstants.myTasks}/$taskId/status'),
         headers: headers,
         body: json.encode(body),
@@ -1484,7 +1482,7 @@ class ApiService {
     try {
       final url = '${ApiConstants.baseUrl}/break/start';
       final token = await _storageService.getToken();
-      final response = await http.post(
+      final response = await _client.post(
         Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
@@ -1507,7 +1505,7 @@ class ApiService {
     try {
       final url = '${ApiConstants.baseUrl}/break/end';
       final token = await _storageService.getToken();
-      final response = await http.post(
+      final response = await _client.post(
         Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
@@ -1530,7 +1528,7 @@ class ApiService {
     try {
       final url = '${ApiConstants.baseUrl}/break/status';
       final token = await _storageService.getToken();
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse(url),
         headers: {
           'Accept': 'application/json',
@@ -1624,9 +1622,8 @@ class ApiService {
   Future<Map<String, dynamic>> sendGeofenceEntry(int campusId) async {
     try {
       final url = '${ApiConstants.baseUrl}/geofencing/entry';
-      print('📍 Sending geofence entry for campus: $campusId');
 
-      final response = await http.post(
+      final response = await _client.post(
         Uri.parse(url),
         headers: await _getHeaders(includeAuth: true),
         body: json.encode({
@@ -1634,7 +1631,6 @@ class ApiService {
         }),
       );
 
-      print('📡 Response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -1651,7 +1647,6 @@ class ApiService {
         };
       }
     } catch (e) {
-      print('💥 Exception: $e');
       return {
         'success': false,
         'message': 'Erreur réseau: $e',
@@ -1664,7 +1659,7 @@ class ApiService {
     try {
       final url = '${ApiConstants.baseUrl}/geofencing/clicked';
 
-      final response = await http.post(
+      final response = await _client.post(
         Uri.parse(url),
         headers: await _getHeaders(includeAuth: true),
         body: json.encode({
@@ -1685,7 +1680,6 @@ class ApiService {
         };
       }
     } catch (e) {
-      print('💥 Exception: $e');
       return {
         'success': false,
         'message': 'Erreur réseau: $e',
@@ -1698,7 +1692,7 @@ class ApiService {
     try {
       final url = '${ApiConstants.baseUrl}/geofencing/ignored';
 
-      final response = await http.post(
+      final response = await _client.post(
         Uri.parse(url),
         headers: await _getHeaders(includeAuth: true),
         body: json.encode({
@@ -1719,7 +1713,6 @@ class ApiService {
         };
       }
     } catch (e) {
-      print('💥 Exception: $e');
       return {
         'success': false,
         'message': 'Erreur réseau: $e',
@@ -1732,7 +1725,7 @@ class ApiService {
     try {
       final url = '${ApiConstants.baseUrl}/geofencing/status';
 
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse(url),
         headers: await _getHeaders(includeAuth: true),
       );
@@ -1750,7 +1743,6 @@ class ApiService {
         };
       }
     } catch (e) {
-      print('💥 Exception: $e');
       return {
         'success': false,
         'message': 'Erreur réseau: $e',

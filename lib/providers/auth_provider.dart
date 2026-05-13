@@ -65,6 +65,7 @@ class AuthProvider with ChangeNotifier {
         _user = User.fromJson(result['data']['user']);
         _isAuthenticated = true;
         _isLoading = false;
+        ApiService.clearTokenCache(); // Invalider l'ancien token en cache
         notifyListeners();
         // Envoyer le token FCM au backend après login
         FirebaseNotificationService().resendTokenToBackend();
@@ -101,6 +102,7 @@ class AuthProvider with ChangeNotifier {
     }
 
     await _apiService.logout();
+    ApiService.clearTokenCache(); // Invalider le token en cache
     await OfflineCacheService().clearAllCaches();
     _user = null;
     _isAuthenticated = false;
