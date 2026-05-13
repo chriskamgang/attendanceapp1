@@ -44,6 +44,8 @@ class _CheckInScreenState extends State<CheckInScreen> {
     super.initState();
     _getCurrentLocationWithAutoRetry();
     _loadUnitesIfVacataire();
+    // Rafraîchir le statut check-in/check-out pour afficher le bon bouton
+    Provider.of<AttendanceProvider>(context, listen: false).checkCurrentStatus();
 
     // Si c'est un check-in rapide depuis géofencing
     if (widget.preselected && widget.geofenceNotificationId != null) {
