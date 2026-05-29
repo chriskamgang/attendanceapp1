@@ -30,6 +30,16 @@ class AttendanceProvider with ChangeNotifier {
     }
   }
 
+  // Mettre à jour depuis les données home-data (évite un appel réseau séparé)
+  void updateFromHomeData(Map<String, dynamic> dashData) {
+    _hasActiveCheckIn = dashData['has_active_checkin'] ?? false;
+    final activeList = dashData['active_checkins'] as List?;
+    if (activeList != null) {
+      _activeCheckIns = activeList.map((a) => Attendance.fromJson(Map<String, dynamic>.from(a))).toList();
+    }
+    notifyListeners();
+  }
+
   // Vérifier le statut actuel
   Future<void> checkCurrentStatus() async {
     try {

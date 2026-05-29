@@ -824,6 +824,30 @@ class ApiService {
 
   // ========== USER ==========
 
+  /// Charge toutes les données de l'écran d'accueil en une seule requête
+  Future<Map<String, dynamic>> getHomeData() async {
+    try {
+      final response = await _get(
+        Uri.parse('${ApiConstants.baseUrl}/user/home-data'),
+        headers: await _getHeaders(includeAuth: true),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        await _cache.cache('home_data', data['data']);
+        return {'success': true, 'data': data['data']};
+      } else {
+        return {'success': false, 'message': 'Erreur de chargement'};
+      }
+    } catch (e) {
+      final cached = await _cache.getCached('home_data', maxAgeHours: 24);
+      if (cached != null) {
+        return {'success': true, 'data': Map<String, dynamic>.from(cached), 'fromCache': true};
+      }
+      return {'success': false, 'message': 'Erreur réseau: $e'};
+    }
+  }
+
   Future<Map<String, dynamic>> getDashboard() async {
     try {
       final response = await _get(
