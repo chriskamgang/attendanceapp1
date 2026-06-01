@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/attendance.dart';
@@ -10,6 +11,7 @@ class AttendanceProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
   final LocationService _locationService = LocationService();
   final OfflineQueueService _offlineQueue = OfflineQueueService();
+  StreamSubscription<bool>? _onlineStatusSub;
 
   bool _isLoading = false;
   bool _hasActiveCheckIn = false;
@@ -215,5 +217,26 @@ class AttendanceProvider with ChangeNotifier {
     } catch (e) {
       print('Erreur getTodayAttendances: $e');
     }
+  }
+
+  // Démarrer l'écoute du statut de connexion pour auto-sync + refresh UI
+  void initConnectivityListener() {
+    _onlineStatusSub = _offlineQueue.onlineStatusStream.listen((isOnline) async {
+      if (isOnline) {
+        final pending = await _offlineQueue.getPendingCount();
+        if (pending > 0) {
+          await syncOfflineActions();
+        } else {
+          await refreshStatus();
+        }
+      }
+      notifyListeners();
+    });
+  }
+
+  @override
+  void dispose() {
+    _onlineStatusSub?.cancel();
+    super.dispose();
   }
 }

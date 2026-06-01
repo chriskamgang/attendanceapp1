@@ -167,7 +167,7 @@ class _MyAppState extends State<MyApp> {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => AttendanceProvider()),
+        ChangeNotifierProvider(create: (_) => AttendanceProvider()..initConnectivityListener()),
       ],
       child: MaterialApp(
         navigatorKey: navigatorKey,

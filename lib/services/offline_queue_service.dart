@@ -69,14 +69,8 @@ class OfflineQueueService {
 
     // Ecouter les changements de connectivite
     _connectivitySub = Connectivity().onConnectivityChanged.listen((result) {
-      final wasOffline = !_isOnline;
       _isOnline = !result.contains(ConnectivityResult.none);
       _onlineStatusController.add(_isOnline);
-
-      // Si on repasse en ligne, synchroniser
-      if (wasOffline && _isOnline) {
-        syncPendingActions();
-      }
     });
 
     // Notifier le compte initial
