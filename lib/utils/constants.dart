@@ -65,6 +65,25 @@ class ApiConstants {
 
   // Mise à jour
   static const String checkUpdate = '/check-update';
+
+  // Bus Transport
+  static const String busRegister = '/bus/register';
+  static const String busStatus = '/bus/status';
+  static const String busDisconnect = '/bus/disconnect';
+  static const String busPointsRamassage = '/bus/points-ramassage';
+  static const String busLieux = '/bus/lieux';
+  static const String busLignes = '/bus/lignes';
+  static const String busParcours = '/bus/parcours';
+  static const String busTarifs = '/bus/tarifs';
+  static const String busEnLigne = '/bus/en-ligne';
+  static const String busMonBus = '/bus/mon-bus';
+  static const String busPointRamassage = '/bus/point-ramassage';
+  static const String busMesTrajets = '/bus/mes-trajets';
+  static const String busAbonnements = '/bus/abonnements';
+  static const String busAbonnementActif = '/bus/abonnement-actif';
+  static const String busQrPass = '/bus/qr-pass';
+  static const String busNotifications = '/bus/notifications';
+  static const String busNotificationsNonLues = '/bus/notifications/non-lues';
 }
 
 class AppConstants {

@@ -9,6 +9,7 @@ import 'profile/profile_screen.dart';
 import 'moratoire/moratoire_screen.dart';
 import 'tickets/tickets_screen.dart';
 import 'rh/rh_services_screen.dart';
+import 'bus/bus_home_screen.dart';
 import '../services/location_tracking_service.dart';
 import '../services/biometric_service.dart';
 
@@ -30,6 +31,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       return [
         const StudentHomeScreen(),
         const HistoryScreen(),
+        const BusHomeScreen(),
         const MoratoireScreen(),
         const ProfileScreen(),
       ];
@@ -98,8 +100,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
     if (state == AppLifecycleState.paused) {
       _pausedAt = DateTime.now();
-      LocationTrackingService.stopTracking();
+      // Le tracking continue en arriere-plan pour maintenir la position sur la carte admin
     } else if (state == AppLifecycleState.resumed) {
+      // Redemarrer le tracking au cas ou le timer aurait ete tue par le systeme
       LocationTrackingService.startTracking();
       // Verrouiller si l'app etait en arriere-plan plus de 5 secondes
       if (_biometricAvailable && _pausedAt != null) {
@@ -183,12 +186,16 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         icon: Icon(Icons.history),
         label: 'Historique',
       ),
-      if (isStudent)
+      if (isStudent) ...[
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.directions_bus),
+          label: 'Bus',
+        ),
         const BottomNavigationBarItem(
           icon: Icon(Icons.credit_card),
           label: 'Moratoire',
-        )
-      else ...[
+        ),
+      ] else ...[
         const BottomNavigationBarItem(
           icon: Icon(Icons.confirmation_number_rounded),
           label: 'Tickets',

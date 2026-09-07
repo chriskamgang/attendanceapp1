@@ -546,6 +546,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _startBreak() async {
+    if (!_isOnline) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('La pause nécessite une connexion internet. Réessayez quand vous serez en ligne.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
     setState(() => _breakLoading = true);
     try {
       // Récupérer la position GPS
@@ -606,6 +615,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _endBreak() async {
+    if (!_isOnline) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Le retour de pause nécessite une connexion internet. Réessayez quand vous serez en ligne.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
     setState(() => _breakLoading = true);
     try {
       // Récupérer la position GPS

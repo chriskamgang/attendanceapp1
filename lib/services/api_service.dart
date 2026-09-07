@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart';
 import 'package:dio/dio.dart' as dio_pkg;
 import 'package:path_provider/path_provider.dart';
 import '../utils/constants.dart';
@@ -18,8 +19,14 @@ class ApiService {
   final StorageService _storageService = StorageService();
   final OfflineCacheService _cache = OfflineCacheService();
 
-  // Client HTTP persistant pour réutiliser les connexions (keep-alive)
-  static final http.Client _client = http.Client();
+  // Client HTTP qui accepte tous les certificats SSL (pour vieux Android)
+  static final http.Client _client = _createHttpClient();
+
+  static http.Client _createHttpClient() {
+    final httpClient = HttpClient()
+      ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+    return IOClient(httpClient);
+  }
 
   // Cache du token en mémoire pour éviter les lectures répétées du storage
   static String? _cachedToken;

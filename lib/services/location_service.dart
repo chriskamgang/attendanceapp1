@@ -19,7 +19,8 @@ class LocationService {
         permission == LocationPermission.whileInUse;
   }
 
-  /// Obtenir la position actuelle - rapide, utilise le cache si récent
+  /// Obtenir la position actuelle avec GPS optimisé
+  /// Essaie plusieurs méthodes et retente si la précision est mauvaise
   Future<Position?> getCurrentPosition({bool forceRefresh = false}) async {
     try {
       bool serviceEnabled = await isLocationServiceEnabled();
@@ -49,23 +50,75 @@ class LocationService {
         } catch (_) {}
       }
 
-      // Méthode rapide : getCurrentPosition direct avec timeout court
+      // Méthode rapide : getCurrentPosition direct
+      Position? bestPosition;
       try {
         Position pos = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high,
           timeLimit: const Duration(seconds: 8),
         );
         print('GPS DIRECT: ${pos.latitude}, ${pos.longitude} (précision: ${pos.accuracy}m)');
-        return pos;
+        bestPosition = pos;
+
+        // Si bonne précision, retourner directement
+        if (pos.accuracy <= 100) {
+          return pos;
+        }
       } catch (e) {
         print('GPS direct échoué: $e');
       }
 
-      // Fallback : Stream GPS hardware (plus fiable mais plus lent)
-      Position? freshPosition = await _getHardwareGPSPosition();
-      if (freshPosition != null) {
-        print('GPS HARDWARE: ${freshPosition.latitude}, ${freshPosition.longitude} (précision: ${freshPosition.accuracy}m)');
-        return freshPosition;
+      // GPS Hardware - round 1 (10 secondes, 6 positions max)
+      Position? hwPosition = await _getHardwareGPSPosition(
+        maxReadings: 6,
+        timeoutSeconds: 10,
+        targetAccuracy: 50,
+      );
+      if (hwPosition != null) {
+        print('GPS HW R1: ${hwPosition.latitude}, ${hwPosition.longitude} (précision: ${hwPosition.accuracy}m)');
+        if (bestPosition == null || hwPosition.accuracy < bestPosition.accuracy) {
+          bestPosition = hwPosition;
+        }
+        if (bestPosition!.accuracy <= 100) {
+          return bestPosition;
+        }
+      }
+
+      // Si précision toujours mauvaise (>200m), round 2 plus long
+      if (bestPosition == null || bestPosition.accuracy > 200) {
+        print('GPS précision insuffisante (${bestPosition?.accuracy}m), round 2...');
+        Position? hwPosition2 = await _getHardwareGPSPosition(
+          maxReadings: 10,
+          timeoutSeconds: 15,
+          targetAccuracy: 100,
+        );
+        if (hwPosition2 != null) {
+          print('GPS HW R2: ${hwPosition2.latitude}, ${hwPosition2.longitude} (précision: ${hwPosition2.accuracy}m)');
+          if (bestPosition == null || hwPosition2.accuracy < bestPosition.accuracy) {
+            bestPosition = hwPosition2;
+          }
+        }
+      }
+
+      // Si toujours >500m, dernier essai avec Fused Location
+      if (bestPosition == null || bestPosition.accuracy > 500) {
+        print('GPS précision très faible (${bestPosition?.accuracy}m), essai Fused...');
+        Position? fusedPos = await _getStreamGPSPosition(
+          maxReadings: 8,
+          timeoutSeconds: 12,
+        );
+        if (fusedPos != null) {
+          print('GPS FUSED: ${fusedPos.latitude}, ${fusedPos.longitude} (précision: ${fusedPos.accuracy}m)');
+          if (bestPosition == null || fusedPos.accuracy < bestPosition.accuracy) {
+            bestPosition = fusedPos;
+          }
+        }
+      }
+
+      // Retourner la meilleure position obtenue
+      if (bestPosition != null) {
+        print('GPS FINAL: ${bestPosition.latitude}, ${bestPosition.longitude} (précision: ${bestPosition.accuracy}m)');
+        return bestPosition;
       }
 
       // Dernier recours : position en cache même ancienne
@@ -80,23 +133,12 @@ class LocationService {
     }
   }
 
-  /// Vérifier si une position est fraîche (différente du cache)
-  bool _isPositionFresh(Position position, Position? cached) {
-    final age = DateTime.now().difference(position.timestamp).inSeconds;
-    // Position récente (< 10s) = fraîche
-    if (age <= 10) return true;
-    // Si pas de cache à comparer, accepter si < 30s
-    if (cached == null) return age <= 30;
-    // Si différente du cache (> 10m de différence), c'est une nouvelle position
-    final distance = Geolocator.distanceBetween(
-      position.latitude, position.longitude,
-      cached.latitude, cached.longitude,
-    );
-    return distance > 10;
-  }
-
   /// Forcer le GPS hardware Android (bypass Fused Location Provider)
-  Future<Position?> _getHardwareGPSPosition() async {
+  Future<Position?> _getHardwareGPSPosition({
+    int maxReadings = 6,
+    int timeoutSeconds = 10,
+    double targetAccuracy = 50,
+  }) async {
     try {
       final completer = Completer<Position?>();
       Position? bestPosition;
@@ -107,7 +149,7 @@ class LocationService {
         settings = AndroidSettings(
           accuracy: LocationAccuracy.best,
           distanceFilter: 0,
-          forceLocationManager: true, // CLÉ : bypass le cache Google
+          forceLocationManager: true,
           intervalDuration: const Duration(seconds: 1),
         );
       } else {
@@ -123,23 +165,22 @@ class LocationService {
         final age = DateTime.now().difference(pos.timestamp).inSeconds;
         print('GPS HW #$count: ${pos.latitude}, ${pos.longitude} (précision: ${pos.accuracy}m, age: ${age}s)');
 
-        if (age > 10) return; // Ignorer les vieilles positions
+        if (age > 15) return; // Ignorer les vieilles positions
 
         if (bestPosition == null || pos.accuracy < bestPosition!.accuracy) {
           bestPosition = pos;
         }
 
-        // Bonne précision ou 4 positions reçues -> terminé
-        if (pos.accuracy <= 30 || count >= 4) {
+        // Bonne précision atteinte ou assez de lectures
+        if (pos.accuracy <= targetAccuracy || count >= maxReadings) {
           if (!completer.isCompleted) completer.complete(bestPosition);
         }
       }, onError: (e) {
         print('Erreur GPS HW stream: $e');
-        if (!completer.isCompleted) completer.complete(null);
+        if (!completer.isCompleted) completer.complete(bestPosition);
       });
 
-      // Timeout 6 secondes
-      Future.delayed(const Duration(seconds: 6), () {
+      Future.delayed(Duration(seconds: timeoutSeconds), () {
         if (!completer.isCompleted) completer.complete(bestPosition);
       });
 
@@ -152,8 +193,11 @@ class LocationService {
     }
   }
 
-  /// Stream GPS via Fused Location Provider (fallback)
-  Future<Position?> _getStreamGPSPosition() async {
+  /// Stream GPS via Fused Location Provider
+  Future<Position?> _getStreamGPSPosition({
+    int maxReadings = 8,
+    int timeoutSeconds = 12,
+  }) async {
     try {
       final completer = Completer<Position?>();
       Position? bestPosition;
@@ -170,20 +214,20 @@ class LocationService {
         final age = DateTime.now().difference(pos.timestamp).inSeconds;
         print('GPS FUSED #$count: ${pos.latitude}, ${pos.longitude} (précision: ${pos.accuracy}m, age: ${age}s)');
 
-        if (age > 10) return;
+        if (age > 15) return;
 
         if (bestPosition == null || pos.accuracy < bestPosition!.accuracy) {
           bestPosition = pos;
         }
 
-        if (pos.accuracy <= 30 || count >= 3) {
+        if (pos.accuracy <= 50 || count >= maxReadings) {
           if (!completer.isCompleted) completer.complete(bestPosition);
         }
       }, onError: (e) {
-        if (!completer.isCompleted) completer.complete(null);
+        if (!completer.isCompleted) completer.complete(bestPosition);
       });
 
-      Future.delayed(const Duration(seconds: 8), () {
+      Future.delayed(Duration(seconds: timeoutSeconds), () {
         if (!completer.isCompleted) completer.complete(bestPosition);
       });
 
@@ -194,6 +238,18 @@ class LocationService {
       print('Erreur GPS fused stream: $e');
       return null;
     }
+  }
+
+  /// Vérifier si une position est fraîche
+  bool _isPositionFresh(Position position, Position? cached) {
+    final age = DateTime.now().difference(position.timestamp).inSeconds;
+    if (age <= 10) return true;
+    if (cached == null) return age <= 30;
+    final distance = Geolocator.distanceBetween(
+      position.latitude, position.longitude,
+      cached.latitude, cached.longitude,
+    );
+    return distance > 10;
   }
 
   double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
@@ -209,8 +265,19 @@ class LocationService {
     double accuracy = 0,
   }) {
     double distance = calculateDistance(userLat, userLon, zoneLat, zoneLon);
-    double tolerance = accuracy > 50 ? accuracy : 50;
-    if (tolerance > 500) tolerance = 500;
+
+    // Tolérance basée sur le chevauchement du cercle d'incertitude GPS
+    double tolerance;
+    if (accuracy <= 100) {
+      tolerance = 50; // Bon GPS : tolérance fixe
+    } else if (accuracy <= 500) {
+      tolerance = accuracy; // GPS moyen : précision complète
+    } else if (accuracy <= 3000) {
+      tolerance = accuracy * 0.7; // GPS faible : 70% pour sécurité
+    } else {
+      tolerance = 2000; // GPS inutilisable : cap
+    }
+
     return distance <= (radius + tolerance);
   }
 
