@@ -9,6 +9,7 @@ import '../../../data/services/api_exception.dart';
 import '../../../data/services/session_service.dart';
 import '../../../data/services/student_service.dart';
 import '../../../routes/app_pages.dart';
+import '../../scolarite/controllers/scolarite_controller.dart';
 
 /// Coque de l'espace étudiant : porte les cinq onglets de la barre basse.
 class HomeController extends GetxController {
@@ -55,7 +56,18 @@ class HomeController extends GetxController {
   void changeTab(int index) => tab.value = index;
 
   /// Recharge suivi, pass, trajets et alertes.
-  Future<void> reload() => student.refreshAll();
+  /// Recharge ce que l'écran montre.
+  ///
+  /// La scolarité vit dans son propre service : sans ce rappel, le bouton
+  /// du bandeau actualisait le transport pendant que l'étudiant regardait
+  /// ses cours, et rien ne bougeait sous ses yeux.
+  Future<void> reload() async {
+    await Future.wait([
+      student.refreshAll(),
+      if (Get.isRegistered<ScolariteController>())
+        Get.find<ScolariteController>().rafraichir(),
+    ]);
+  }
 
   void openNotifications() => Get.toNamed(Routes.NOTIFICATIONS);
 

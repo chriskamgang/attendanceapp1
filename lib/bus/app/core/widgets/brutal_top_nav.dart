@@ -106,7 +106,7 @@ class _NavCell extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 10.5,
                           fontWeight: FontWeight.w900,
-                          color: AppColors.ink,
+                          color: AppColors.white,
                           height: 1.25,
                         ),
                       ),

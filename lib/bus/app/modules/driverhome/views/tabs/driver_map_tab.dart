@@ -156,7 +156,7 @@ class _MapBlocked extends StatelessWidget {
                 color: AppColors.gold,
                 borderRadius: BorderRadius.circular(Brutal.radiusSmall),
                 border: Border.all(
-                  color: AppColors.ink,
+                  color: AppColors.white,
                   width: Brutal.borderThick,
                 ),
                 boxShadow: Brutal.shadow(const Offset(3, 3)),
@@ -166,7 +166,7 @@ class _MapBlocked extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w900,
-                  color: AppColors.ink,
+                  color: AppColors.white,
                 ),
               ),
             ),
@@ -711,7 +711,7 @@ class _StageSheet extends GetView<DriverhomeController> {
                   style: TextStyle(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w900,
-                    color: AppColors.ink,
+                    color: AppColors.white,
                   ),
                 ),
               ),

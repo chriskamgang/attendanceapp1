@@ -328,7 +328,7 @@ class _BusChip extends StatelessWidget {
       child: const Icon(
         Icons.directions_bus_filled_rounded,
         size: 26,
-        color: AppColors.ink,
+        color: AppColors.white,
       ),
     );
   }
@@ -431,7 +431,7 @@ class _PassArt extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.gold,
         borderRadius: BorderRadius.circular(Brutal.radius),
-        border: Border.all(color: AppColors.ink, width: Brutal.borderThick),
+        border: Border.all(color: AppColors.white, width: Brutal.borderThick),
         boxShadow: Brutal.shadow(Brutal.shadowOffsetLarge),
       ),
       clipBehavior: Clip.antiAlias,

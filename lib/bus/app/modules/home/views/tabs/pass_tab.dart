@@ -244,7 +244,7 @@ class _PassCard extends StatelessWidget {
             decoration: const BoxDecoration(
               color: AppColors.gold,
               border: Border(
-                top: BorderSide(color: AppColors.ink, width: 2.5),
+                top: BorderSide(color: AppColors.white, width: 2.5),
               ),
             ),
             child: Column(

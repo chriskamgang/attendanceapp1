@@ -198,7 +198,7 @@ class _Badge extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.gold,
         borderRadius: BorderRadius.circular(Brutal.radiusSmall),
-        border: Border.all(color: AppColors.ink, width: Brutal.border),
+        border: Border.all(color: AppColors.white, width: Brutal.border),
         boxShadow: Brutal.shadow(const Offset(3, 3)),
       ),
       child: const Row(
@@ -207,7 +207,7 @@ class _Badge extends StatelessWidget {
           Icon(
             Icons.directions_bus_filled_rounded,
             size: 18,
-            color: AppColors.ink,
+            color: AppColors.white,
           ),
           SizedBox(width: 8),
           Text(

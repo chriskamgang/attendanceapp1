@@ -45,7 +45,7 @@ class RescueMissionCard extends StatelessWidget {
               decoration: const BoxDecoration(
                 color: AppColors.gold,
                 border: Border(
-                  bottom: BorderSide(color: AppColors.ink, width: 2.5),
+                  bottom: BorderSide(color: AppColors.white, width: 2.5),
                 ),
               ),
               child: Row(

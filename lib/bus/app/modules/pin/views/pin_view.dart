@@ -209,7 +209,7 @@ class _PinCell extends GetView<PinController> {
         // Le curseur ne bat que dans la case en cours : partout ailleurs,
         // il désignerait un endroit où la frappe n'ira pas.
         showCursor: active,
-        cursorColor: AppColors.ink,
+        cursorColor: filled ? AppColors.white : AppColors.ink,
         cursorWidth: 2.5,
         cursorRadius: const Radius.circular(2),
         // Le code s'affiche en points : il se saisit souvent dans le bus,
@@ -217,13 +217,22 @@ class _PinCell extends GetView<PinController> {
         obscureText: true,
         obscuringCharacter: '●',
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        // Le point saisi se lit en blanc sur la case rouge.
         style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontSize: size * 0.5,
-              fontWeight: FontWeight.w900,
-            ),
+          fontSize: size * 0.5,
+          fontWeight: FontWeight.w900,
+          color: filled ? AppColors.white : AppColors.ink,
+        ),
         decoration: const InputDecoration(
           counterText: '',
+          // Le cadre est celui de la case qui entoure ce champ : les
+          // contours du thème s'y ajouteraient en doublon.
+          filled: false,
           border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          errorBorder: InputBorder.none,
+          focusedErrorBorder: InputBorder.none,
           isDense: true,
           contentPadding: EdgeInsets.zero,
         ),

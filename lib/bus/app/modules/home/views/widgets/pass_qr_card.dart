@@ -284,7 +284,7 @@ class _TripsBadge extends StatelessWidget {
         style: const TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w900,
-          color: AppColors.ink,
+          color: AppColors.white,
         ),
       ),
     );

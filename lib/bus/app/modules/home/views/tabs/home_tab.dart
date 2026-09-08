@@ -220,7 +220,7 @@ class _EtaContent extends GetView<HomeController> {
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
             decoration: const BoxDecoration(
               color: AppColors.gold,
-              border: Border(top: BorderSide(color: AppColors.ink, width: 2.5)),
+              border: Border(top: BorderSide(color: AppColors.white, width: 2.5)),
             ),
             child: Row(
               children: [

@@ -121,7 +121,14 @@ class _RootAppState extends State<RootApp> {
   }
 
   Future<void> _preparerBus() async {
-    await BusBoot.demarrer();
+    // L'amorçage rend la main quoi qu'il arrive : un service qui échoue —
+    // le push sans son icône, un stockage illisible — laissait sinon
+    // l'écran d'attente tourner sans fin, sans rien dire.
+    try {
+      await BusBoot.demarrer();
+    } catch (e) {
+      debugPrint('[bus] amorçage incomplet : $e');
+    }
     if (!mounted) return;
     setState(() => _demarrageBus = false);
   }

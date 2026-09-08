@@ -52,7 +52,7 @@ class BrandMark extends StatelessWidget {
               fontSize: fontSize * 0.86,
               fontWeight: FontWeight.w900,
               letterSpacing: -0.2,
-              color: AppColors.ink,
+              color: AppColors.white,
             ),
           ),
         ),

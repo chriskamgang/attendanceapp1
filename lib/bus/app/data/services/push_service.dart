@@ -284,7 +284,7 @@ class PushService extends GetxService {
   Future<void> _preparerAffichageLocal() async {
     await _local.initialize(
       settings: const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/launcher_icon'),
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
         iOS: DarwinInitializationSettings(),
       ),
       onDidReceiveNotificationResponse: (reponse) {

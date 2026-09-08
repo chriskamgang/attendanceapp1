@@ -281,7 +281,7 @@ class _StepButton extends StatelessWidget {
           border: Border.all(color: AppColors.ink, width: 2.5),
           boxShadow: Brutal.shadow(const Offset(3, 3)),
         ),
-        child: Icon(icon, size: 28, color: AppColors.ink),
+        child: Icon(icon, size: 28, color: AppColors.white),
       ),
     );
   }

@@ -13,13 +13,16 @@ abstract class AppColors {
 
   /// Rouge INSAM. Porte les actions principales, les boutons pleins et
   /// les accents ; c'est la couleur qui appelle le geste.
-  static const Color red = Color(0xFFC81E2D);
+  /// Rouge brique, moins saturé que le vermillon d'origine : sur de
+  /// larges aplats — bouton de service, bandeau de ligne — celui-ci
+  /// vibrait et tirait l'œil au détriment du contenu.
+  static const Color red = Color(0xFFB03040);
 
   /// Rouge sombre, pour les appuis et les états pressés.
-  static const Color redDark = Color(0xFF8E1520);
+  static const Color redDark = Color(0xFF7E2130);
 
   /// Rouge très clair, fond de bloc d'accent.
-  static const Color redSoft = Color(0xFFFDE8EA);
+  static const Color redSoft = Color(0xFFFBE9EC);
 
   // --- Bleu : la couleur de structure ----------------------------------
 
@@ -62,9 +65,9 @@ abstract class AppColors {
 
   /// Rouge d'erreur, distinct du rouge de marque pour ne pas confondre
   /// une action avec un incident.
-  static const Color danger = Color(0xFFD7263D);
+  static const Color danger = Color(0xFFC0392F);
 
-  static const Color dangerSoft = Color(0xFFFDE8EA);
+  static const Color dangerSoft = Color(0xFFFBE9EC);
 
   // --- Compatibilité ----------------------------------------------------
   //

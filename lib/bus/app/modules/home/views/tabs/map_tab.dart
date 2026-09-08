@@ -404,7 +404,7 @@ class _TrackingSheet extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w900,
-                  color: AppColors.ink,
+                  color: AppColors.white,
                 ),
               ),
             ),

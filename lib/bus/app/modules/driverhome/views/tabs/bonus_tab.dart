@@ -163,7 +163,7 @@ class _TotalCard extends GetView<DriverhomeController> {
               decoration: const BoxDecoration(
                 color: AppColors.gold,
                 border: Border(
-                  top: BorderSide(color: AppColors.ink, width: 2.5),
+                  top: BorderSide(color: AppColors.white, width: 2.5),
                 ),
               ),
               child: Row(
@@ -469,7 +469,13 @@ class _EntryRow extends StatelessWidget {
               borderRadius: BorderRadius.circular(Brutal.radiusSmall),
               border: Border.all(color: AppColors.ink, width: 2.5),
             ),
-            child: Icon(_iconFor(entry.kind), size: 19, color: AppColors.ink),
+            child: Icon(
+              _iconFor(entry.kind),
+              size: 19,
+              // Un débit s'affiche sur fond rouge : l'icône s'y détache en
+              // blanc, comme partout ailleurs sur cette teinte.
+              color: debit ? AppColors.white : AppColors.ink,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(

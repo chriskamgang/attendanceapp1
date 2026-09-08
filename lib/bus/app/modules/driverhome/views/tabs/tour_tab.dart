@@ -331,12 +331,19 @@ class _TourCard extends GetView<DriverhomeController> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.alt_route_rounded, size: 18),
+                  const Icon(
+                    Icons.alt_route_rounded,
+                    size: 18,
+                    color: AppColors.white,
+                  ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       tour.lineName,
-                      style: text.titleMedium?.copyWith(fontSize: 14),
+                      style: text.titleMedium?.copyWith(
+                        fontSize: 14,
+                        color: AppColors.white,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -471,11 +478,12 @@ class _GeofenceStrip extends GetView<DriverhomeController> {
                   driver.busPosition.value == null
                       ? 'GPS…'
                       : _distance(driver.distance.value),
-                  style: const TextStyle(
+                  // Hors zone, la pastille passe au rouge : l'encre suit.
+                  style: TextStyle(
                     fontSize: 9.5,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.5,
-                    color: AppColors.ink,
+                    color: ok ? AppColors.ink : AppColors.white,
                   ),
                 ),
               ),
@@ -548,7 +556,7 @@ class _AdvanceButton extends GetView<DriverhomeController> {
             Icon(
               unlocked ? _iconFor(tour.stage) : Icons.lock_rounded,
               size: 21,
-              color: unlocked ? AppColors.ink : AppColors.inkMuted,
+              color: unlocked ? AppColors.white : AppColors.inkMuted,
             ),
             const SizedBox(width: 10),
             Flexible(
@@ -560,7 +568,7 @@ class _AdvanceButton extends GetView<DriverhomeController> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w900,
-                    color: unlocked ? AppColors.ink : AppColors.inkMuted,
+                    color: unlocked ? AppColors.white : AppColors.inkMuted,
                   ),
                 ),
               ),
@@ -955,7 +963,7 @@ class _BreakdownButton extends GetView<DriverhomeController> {
                   borderRadius: BorderRadius.circular(Brutal.radiusSmall),
                   border: Border.all(color: AppColors.ink, width: 2.5),
                 ),
-                child: Icon(b.kind.icon, size: 22, color: AppColors.ink),
+                child: Icon(b.kind.icon, size: 22, color: AppColors.white),
               ),
               const SizedBox(width: 13),
               Expanded(

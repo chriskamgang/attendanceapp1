@@ -10,6 +10,7 @@ import 'app/data/services/api_client.dart';
 import 'app/data/services/notification_service.dart';
 import 'app/data/services/osm_service.dart';
 import 'app/data/services/push_service.dart';
+import 'app/data/services/scolarite_service.dart';
 import 'app/data/services/session_service.dart';
 import 'app/data/services/storage_service.dart';
 import 'app/routes/app_pages.dart';
@@ -87,6 +88,11 @@ abstract class BusBoot {
       NotificationService(api: api),
       permanent: true,
     );
+
+    // La scolarité sert dès la complétion de profil, avant que l'onglet
+    // qui la porte ne soit monté : son service ne peut pas attendre son
+    // binding, sans quoi la liste des filières arrive vide.
+    Get.put(ScolariteService(api: api), permanent: true);
 
     await _demarrerPush(
       api: api,
