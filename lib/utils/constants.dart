@@ -1,12 +1,12 @@
 class ApiConstants {
   // CONFIGURATION - Changer selon l'environnement
-  static const bool isLocal = false; // Mettre false pour production
+  static const bool isLocal = true; // Mettre false pour production
 
   // Base URLs
   // Pour iOS Simulator: utilisez 127.0.0.1 ou localhost
   // Pour émulateur Android: utilisez 10.0.2.2 au lieu de localhost
   // Pour appareil physique: utilisez l'IP de votre machine (ex: 192.168.x.x)
-  static const String localUrl = 'http://192.168.100.119:8000/api';
+  static const String localUrl = 'http://192.168.1.155:8000/api';
   static const String productionUrl = 'https://rh.iues-insambot.com/api';
 
   // URL active selon l'environnement
@@ -47,7 +47,8 @@ class ApiConstants {
   // Emploi du temps
   static const String mySchedule = '/emploi-du-temps/mon-emploi';
   static const String todaySchedule = '/emploi-du-temps/aujourdhui';
-  static const String uesAvailableNow = '/emploi-du-temps/ues-disponibles-maintenant';
+  static const String uesAvailableNow =
+      '/emploi-du-temps/ues-disponibles-maintenant';
 
   // Tasks
   static const String myTasks = '/tasks';

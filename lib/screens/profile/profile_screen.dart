@@ -9,6 +9,7 @@ import '../../services/api_service.dart';
 import '../../services/storage_service.dart';
 import '../../utils/constants.dart';
 import 'package:intl/intl.dart';
+import '../../shared/rh_ui.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -22,11 +23,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? _salaryStatus;
   bool _isLoading = true;
   DateTime _selectedMonth = DateTime.now();
-
-  static const Color _primaryDark = Color(0xFF1A237E);
-  static const Color _primaryMid = Color(0xFF283593);
-  static const Color _primaryLight = Color(0xFF3949AB);
-  static const Color _surfaceGrey = Color(0xFFF5F7FA);
 
   @override
   void initState() {
@@ -196,18 +192,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = authProvider.user;
 
     return Scaffold(
-      backgroundColor: _surfaceGrey,
+      backgroundColor: AppColors.background,
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _primaryDark))
+          ? const Center(child: CircularProgressIndicator(color: AppColors.blueDark))
           : RefreshIndicator(
-              color: _primaryDark,
+              color: AppColors.blueDark,
               onRefresh: _loadSalaryStatus,
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
                   _buildSliverHeader(user),
                   SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    // La carte se détache du bandeau : collée à lui, elle
+                    // paraissait en déborder.
+                    padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
                         // Net salary highlight card
@@ -265,10 +263,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ===== SLIVER HEADER =====
   Widget _buildSliverHeader(user) {
     return SliverAppBar(
+      // Onglet, non écran empilé : pas de flèche de retour.
+      automaticallyImplyLeading: false,
       expandedHeight: 260,
       floating: false,
       pinned: true,
-      backgroundColor: _primaryDark,
+      backgroundColor: AppColors.blueDark,
       surfaceTintColor: Colors.transparent,
       actions: [
         IconButton(
@@ -283,11 +283,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [_primaryDark, _primaryMid, _primaryLight],
-            ),
+            color: AppColors.blueDark,
           ),
           child: SafeArea(
             child: Padding(
@@ -300,10 +296,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     width: 56,
                     height: 56,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(18),
+                      color: AppColors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(Brutal.radius),
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.3),
+                        color: AppColors.white.withValues(alpha: 0.3),
                         width: 1.5,
                       ),
                     ),
@@ -313,7 +309,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: AppColors.white,
                         ),
                       ),
                     ),
@@ -324,15 +320,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: const TextStyle(
                       fontSize: 19,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: AppColors.white,
                     ),
                   ),
                   const SizedBox(height: 5),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(20),
+                      color: AppColors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(Brutal.radius),
                     ),
                     child: Text(
                       _getEmployeeTypeLabel(user?.employeeType),
@@ -348,7 +344,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     user?.email ?? '',
                     style: TextStyle(
                       fontSize: 11,
-                      color: Colors.white.withValues(alpha: 0.5),
+                      color: AppColors.white.withValues(alpha: 0.5),
                     ),
                   ),
                 ],
@@ -368,13 +364,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(Brutal.radius),
+        border: Border.all(color: AppColors.ink, width: Brutal.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.green.withValues(alpha: 0.15),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
+            color: AppColors.ink,
+            offset: const Offset(4, 4),
           ),
         ],
       ),
@@ -386,7 +382,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _isVacataire ? 'Net à Percevoir' : 'Salaire Net Estimé',
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.grey[500],
+                color: AppColors.inkMuted,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -396,14 +392,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: netSalary > 0 ? Colors.green[700] : Colors.grey[400],
+                color: netSalary > 0 ? AppColors.success : AppColors.inkMuted,
               ),
             ),
             if (_isVacataire) ...[
               const SizedBox(height: 4),
               Text(
                 '${_formatHours(salary['hours_worked'])} x ${_formatCurrency(salary['hourly_rate'])}/h',
-                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                style: TextStyle(fontSize: 12, color: AppColors.inkMuted),
               ),
             ],
           ],
@@ -419,13 +415,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(Brutal.radius),
+          border: Border.all(color: AppColors.ink, width: Brutal.border),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
+              color: AppColors.ink,
+              offset: const Offset(2, 2),
             ),
           ],
         ),
@@ -435,10 +431,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: _primaryDark.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10),
+                color: AppColors.blueDark.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(Brutal.radius),
               ),
-              child: const Icon(Icons.calendar_month_rounded, color: _primaryDark, size: 20),
+              child: const Icon(Icons.calendar_month_rounded, color: AppColors.blueDark, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -447,11 +443,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A1A2E),
+                  color: AppColors.ink,
                 ),
               ),
             ),
-            Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey[400]),
+            Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.inkMuted),
           ],
         ),
       ),
@@ -465,14 +461,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [_primaryDark, _primaryLight],
-          ),
-          borderRadius: BorderRadius.circular(14),
+          color: AppColors.blueDark,
+          borderRadius: BorderRadius.circular(Brutal.radius),
           boxShadow: [
             BoxShadow(
-              color: _primaryDark.withValues(alpha: 0.25),
-              blurRadius: 10,
+              color: AppColors.blueDark.withValues(alpha: 0.25),
               offset: const Offset(0, 4),
             ),
           ],
@@ -486,18 +479,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 height: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Colors.white,
+                  color: AppColors.white,
                 ),
               )
             else
-              const Icon(Icons.picture_as_pdf_rounded, color: Colors.white, size: 20),
+              const Icon(Icons.picture_as_pdf_rounded, color: AppColors.white, size: 20),
             const SizedBox(width: 10),
             Text(
               _isDownloading ? 'Téléchargement...' : 'Télécharger la Fiche de Paie',
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
+                color: AppColors.white,
               ),
             ),
           ],
@@ -516,14 +509,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       icon: Icons.payments_rounded,
       iconColor: const Color(0xFF2E7D32),
       children: [
-        _buildBreakdownRow('Taux Horaire', _formatCurrency(salary['hourly_rate']), const Color(0xFF1565C0)),
+        _buildBreakdownRow('Taux Horaire', _formatCurrency(salary['hourly_rate']), AppColors.blue),
         _buildBreakdownRow('Heures Travaillées', _formatHours(salary['hours_worked']), const Color(0xFF00897B)),
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 8),
           child: Divider(height: 1),
         ),
-        _buildBreakdownRow('Montant Brut', _formatCurrency(salary['gross_salary']), Colors.grey[700]!),
-        _buildBreakdownRow('Déductions', '-${_formatCurrency(salary['total_deductions'])}', Colors.red[600]!),
+        _buildBreakdownRow('Montant Brut', _formatCurrency(salary['gross_salary']), AppColors.inkMuted),
+        _buildBreakdownRow('Déductions', '-${_formatCurrency(salary['total_deductions'])}', AppColors.danger),
       ],
     );
   }
@@ -542,11 +535,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       icon: Icons.account_balance_wallet_rounded,
       iconColor: const Color(0xFF2E7D32),
       children: [
-        _buildBreakdownRow('Salaire Brut', _formatCurrency(salary['gross_salary']), Colors.grey[700]!),
+        _buildBreakdownRow('Salaire Brut', _formatCurrency(salary['gross_salary']), AppColors.inkMuted),
         _buildBreakdownRow('Heures Travaillées', hoursDisplay, const Color(0xFF00897B)),
-        _buildBreakdownRow('Jours Travaillés', '${(attendance['days_worked'] is num ? (attendance['days_worked'] as num).toStringAsFixed(2) : attendance['days_worked'])} jours', const Color(0xFF1565C0)),
-        _buildBreakdownRow('Retards', '${lateness['total_late_minutes']} min', Colors.orange[700]!),
-        _buildBreakdownRow('Déductions', '-${_formatCurrency(salary['total_deductions'])}', Colors.red[600]!),
+        _buildBreakdownRow('Jours Travaillés', '${(attendance['days_worked'] is num ? (attendance['days_worked'] as num).toStringAsFixed(2) : attendance['days_worked'])} jours', AppColors.blue),
+        _buildBreakdownRow('Retards', '${lateness['total_late_minutes']} min', AppColors.warning),
+        _buildBreakdownRow('Déductions', '-${_formatCurrency(salary['total_deductions'])}', AppColors.danger),
       ],
     );
   }
@@ -559,7 +552,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return _buildSection(
       title: 'Présence (Emploi du Temps)',
       icon: Icons.event_note_rounded,
-      iconColor: const Color(0xFF1565C0),
+      iconColor: AppColors.blue,
       children: [
         Row(
           children: [
@@ -568,7 +561,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 '${attendance['scheduled_days'] ?? attendance['working_days']}',
                 'Programmés',
                 Icons.event_note_rounded,
-                const Color(0xFF1565C0),
+                AppColors.blue,
               ),
             ),
             const SizedBox(width: 10),
@@ -586,7 +579,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 '${attendance['days_missed'] ?? attendance['days_not_worked']}',
                 'Manqués',
                 Icons.cancel_rounded,
-                const Color(0xFFD32F2F),
+                AppColors.danger,
               ),
             ),
             const SizedBox(width: 10),
@@ -615,7 +608,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return _buildSection(
       title: 'Statistiques de Présence',
       icon: Icons.bar_chart_rounded,
-      iconColor: const Color(0xFF1565C0),
+      iconColor: AppColors.blue,
       children: [
         Row(
           children: [
@@ -624,7 +617,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 '${attendance['working_days']}',
                 'Ouvrables',
                 Icons.date_range_rounded,
-                const Color(0xFF1565C0),
+                AppColors.blue,
               ),
             ),
             const SizedBox(width: 10),
@@ -651,7 +644,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 '${attendance['days_justified']}',
                 'Justifiées',
                 Icons.verified_rounded,
-                const Color(0xFFF57C00),
+                AppColors.warning,
               ),
             ),
           ],
@@ -668,7 +661,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return _buildSection(
       title: 'Détail des Déductions',
       icon: Icons.receipt_long_rounded,
-      iconColor: const Color(0xFFD32F2F),
+      iconColor: AppColors.danger,
       children: [
         if (!_isVacataire) ...[
           _buildDeductionTile(
@@ -676,7 +669,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             '${lateness['total_late_minutes']} min',
             deductions['late_penalty_amount'],
             Icons.schedule_rounded,
-            const Color(0xFFF57C00),
+            AppColors.warning,
           ),
         ],
         if (!_isVacataire) ...[
@@ -686,7 +679,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             '${(_salaryStatus!['attendance']['days_not_worked'] ?? 0) - (_salaryStatus!['attendance']['days_justified'] ?? 0)} jours',
             deductions['absence_deduction'] ?? 0,
             Icons.cancel_rounded,
-            const Color(0xFFD32F2F),
+            AppColors.danger,
           ),
         ],
         const SizedBox(height: 8),
@@ -703,7 +696,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           null,
           deductions['loan_deductions'] ?? 0,
           Icons.account_balance_rounded,
-          const Color(0xFF283593),
+          AppColors.blueDark,
         ),
 
         // Manual deduction details
@@ -711,7 +704,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             (deductions['manual_deductions_details'] as List).isNotEmpty) ...[
           const SizedBox(height: 14),
           Text('Détails Déductions Manuelles',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[700])),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.inkMuted)),
           const SizedBox(height: 8),
           ...(deductions['manual_deductions_details'] as List).map(
             (detail) => _buildManualDeductionDetail(detail),
@@ -723,7 +716,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             (deductions['loan_deductions_details'] as List).isNotEmpty) ...[
           const SizedBox(height: 14),
           Text('Détails Prêts en Cours',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[700])),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.inkMuted)),
           const SizedBox(height: 8),
           ...(deductions['loan_deductions_details'] as List).map(
             (loan) => _buildLoanDetail(loan),
@@ -741,7 +734,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return _buildSection(
       title: 'Détail par UE',
       icon: Icons.receipt_long_rounded,
-      iconColor: const Color(0xFF1565C0),
+      iconColor: AppColors.blue,
       children: [
         ...ueBreakdown.map((ue) {
           final niveau = ue['niveau'] ?? '';
@@ -754,7 +747,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // Couleur selon le niveau
           final Color niveauColor;
           if (niveau.toString().toLowerCase().contains('licence')) {
-            niveauColor = const Color(0xFF1565C0);
+            niveauColor = AppColors.blue;
           } else if (niveau.toString().toLowerCase().contains('master')) {
             niveauColor = const Color(0xFF7B1FA2);
           } else {
@@ -766,7 +759,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: niveauColor.withValues(alpha: 0.04),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(Brutal.radius),
               border: Border.all(color: niveauColor.withValues(alpha: 0.12)),
             ),
             child: Column(
@@ -778,7 +771,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: niveauColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(Brutal.radiusSmall),
                       ),
                       child: Text(
                         niveau.toString().isNotEmpty ? niveau.toString() : 'BTS',
@@ -808,11 +801,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     Text(
                       'Taux: ${_formatCurrency(taux)}/h',
-                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 11, color: AppColors.inkMuted),
                     ),
                     Text(
                       '${_formatHours(heures)} travaillées',
-                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 11, color: AppColors.inkMuted),
                     ),
                   ],
                 ),
@@ -848,7 +841,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Colors.green[700],
+                color: AppColors.success,
               ),
             ),
           ],
@@ -865,7 +858,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return _buildSection(
       title: 'UE Programmées',
       icon: Icons.school_rounded,
-      iconColor: const Color(0xFF283593),
+      iconColor: AppColors.blueDark,
       children: [
         ...ueSummary.map((ue) {
           final jours = (ue['jours'] as List).join(', ');
@@ -873,8 +866,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFF283593).withValues(alpha: 0.04),
-              borderRadius: BorderRadius.circular(10),
+              color: AppColors.blueDark.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(Brutal.radius),
             ),
             child: Row(
               children: [
@@ -882,15 +875,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF283593).withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(10),
+                    color: AppColors.blueDark.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(Brutal.radius),
                   ),
                   child: Center(
                     child: Text(
                       '${ue['creneaux_par_semaine']}x',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF283593),
+                        color: AppColors.blueDark,
                         fontSize: 13,
                       ),
                     ),
@@ -906,7 +899,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                       ),
                       const SizedBox(height: 2),
-                      Text(jours, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                      Text(jours, style: TextStyle(fontSize: 12, color: AppColors.inkMuted)),
                     ],
                   ),
                 ),
@@ -928,13 +921,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(Brutal.radius),
+        border: Border.all(color: AppColors.ink, width: Brutal.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: AppColors.ink,
+            offset: const Offset(2, 2),
           ),
         ],
       ),
@@ -950,7 +943,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   height: 32,
                   decoration: BoxDecoration(
                     color: iconColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(Brutal.radiusSmall),
                   ),
                   child: Icon(icon, color: iconColor, size: 18),
                 ),
@@ -960,7 +953,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A1A2E),
+                    color: AppColors.ink,
                   ),
                 ),
               ],
@@ -979,7 +972,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+          Text(label, style: TextStyle(fontSize: 13, color: AppColors.inkMuted)),
           Text(
             value,
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: valueColor),
@@ -994,7 +987,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Brutal.radius),
       ),
       child: Column(
         children: [
@@ -1012,7 +1005,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Text(
             label,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 10, color: Colors.grey[500], fontWeight: FontWeight.w500),
+            style: TextStyle(fontSize: 10, color: AppColors.inkMuted, fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -1024,7 +1017,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(Brutal.radius),
         border: Border.all(color: color.withValues(alpha: 0.12)),
       ),
       child: Row(
@@ -1034,7 +1027,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             height: 34,
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(Brutal.radiusSmall),
             ),
             child: Icon(icon, color: color, size: 18),
           ),
@@ -1045,7 +1038,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                 if (subtitle != null)
-                  Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                  Text(subtitle, style: TextStyle(fontSize: 11, color: AppColors.inkMuted)),
               ],
             ),
           ),
@@ -1064,7 +1057,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF3F3),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(Brutal.radius),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1080,14 +1073,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               Text(
                 _formatCurrency(detail['amount']),
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.red[700]),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.danger),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
             'Par ${detail['applied_by']} le ${detail['applied_at']}',
-            style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+            style: TextStyle(fontSize: 10, color: AppColors.inkMuted),
           ),
         ],
       ),
@@ -1107,7 +1100,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFFF3F4FF),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Brutal.radius),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1125,7 +1118,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     Text(
                       'Mensualité: ${_formatCurrency(monthlyAmount)}',
-                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 11, color: AppColors.inkMuted),
                     ),
                   ],
                 ),
@@ -1133,12 +1126,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF283593).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
+                  color: AppColors.blueDark.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(Brutal.radiusSmall),
                 ),
                 child: Text(
                   '${_formatCurrency(deductionThisMonth)}',
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF283593)),
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.blueDark),
                 ),
               ),
             ],
@@ -1148,29 +1141,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Payé: ${_formatCurrency(amountPaid)}',
-                  style: TextStyle(fontSize: 10, color: Colors.green[700], fontWeight: FontWeight.w600)),
+                  style: TextStyle(fontSize: 10, color: AppColors.success, fontWeight: FontWeight.w600)),
               Text('Reste: ${_formatCurrency(remainingAmount)}',
-                  style: TextStyle(fontSize: 10, color: Colors.orange[700], fontWeight: FontWeight.w600)),
+                  style: TextStyle(fontSize: 10, color: AppColors.warning, fontWeight: FontWeight.w600)),
             ],
           ),
           const SizedBox(height: 6),
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(Brutal.radiusSmall),
             child: LinearProgressIndicator(
               value: progress / 100,
-              backgroundColor: Colors.grey[200],
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.green[500]!),
+              backgroundColor: AppColors.line,
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.success),
               minHeight: 6,
             ),
           ),
           const SizedBox(height: 4),
           Text('${progress.toStringAsFixed(1)}% remboursé',
-              style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+              style: TextStyle(fontSize: 10, color: AppColors.inkMuted)),
 
           if (loan['reason'] != null && loan['reason'].toString().isNotEmpty) ...[
             const SizedBox(height: 6),
             Text('Motif: ${loan['reason']}',
-                style: TextStyle(fontSize: 10, color: Colors.grey[600], fontStyle: FontStyle.italic)),
+                style: TextStyle(fontSize: 10, color: AppColors.inkMuted, fontStyle: FontStyle.italic)),
           ],
         ],
       ),

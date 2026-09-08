@@ -1,30 +1,50 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:attendance_app/main.dart';
+import 'package:attendance_app/launcher/app_mode.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  setUp(() {
+    // Le lanceur écrit son choix dans SharedPreferences : sans valeurs
+    // simulées, l'appel resterait en attente d'un canal de plateforme.
+    SharedPreferences.setMockInitialValues({});
+  });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  // L'écran de choix a disparu — l'application ouvre directement Estuaire
+  // RH, et l'étudiant passe par la carte du formulaire de connexion. Ce
+  // qu'il reste à vérifier est la mémoire du dernier espace ouvert.
+  group('AppModeService', () {
+    test('n’a rien retenu à la première ouverture', () async {
+      expect(await AppModeService().read(), isNull);
+    });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    test('retient l’espace transport d’une ouverture à l’autre', () async {
+      await AppModeService().save(AppMode.insamBus);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+      expect(await AppModeService().read(), AppMode.insamBus);
+    });
+
+    test('oublie l’espace après un retour aux RH', () async {
+      final service = AppModeService();
+      await service.save(AppMode.insamBus);
+
+      await service.clear();
+
+      // Estuaire RH est le défaut : rien à réinscrire pour l'y ramener.
+      expect(await service.read(), isNull);
+    });
+  });
+
+  group('AppMode', () {
+    test('se relit depuis sa valeur stockée', () {
+      for (final mode in AppMode.values) {
+        expect(AppMode.fromStorage(mode.storageValue), mode);
+      }
+    });
+
+    test('ignore une valeur inconnue ou absente', () {
+      expect(AppMode.fromStorage(null), isNull);
+      expect(AppMode.fromStorage('autre_chose'), isNull);
+    });
   });
 }

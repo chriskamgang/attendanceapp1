@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/ue_schedule.dart';
 import '../../services/api_service.dart';
+import '../../shared/rh_ui.dart';
 
 class ScheduleScreen extends StatefulWidget {
   const ScheduleScreen({super.key});
@@ -95,9 +96,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
+                      Icon(Icons.error_outline, size: 48, color: AppColors.danger),
                       const SizedBox(height: 16),
-                      Text(_errorMessage!, style: TextStyle(color: Colors.red[700])),
+                      Text(_errorMessage!, style: TextStyle(color: AppColors.danger)),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _loadSchedule,
@@ -121,16 +122,16 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.calendar_today, size: 64, color: Colors.grey[300]),
+            Icon(Icons.calendar_today, size: 64, color: AppColors.line),
             const SizedBox(height: 16),
             Text(
               'Aucun emploi du temps',
-              style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 18, color: AppColors.inkMuted),
             ),
             const SizedBox(height: 8),
             Text(
               'Contactez l\'administration pour programmer vos cours.',
-              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+              style: TextStyle(fontSize: 14, color: AppColors.inkMuted),
               textAlign: TextAlign.center,
             ),
           ],
@@ -156,9 +157,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       elevation: isToday ? 3 : 1,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Brutal.radius),
         side: isToday
-            ? BorderSide(color: Colors.blue[400]!, width: 2)
+            ? BorderSide(color: AppColors.blue, width: 2)
             : BorderSide.none,
       ),
       child: Column(
@@ -169,7 +170,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: isToday ? Colors.blue[600] : Colors.grey[800],
+              color: isToday ? AppColors.blue : Colors.grey[800],
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(12),
                 topRight: Radius.circular(12),
@@ -181,7 +182,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 Text(
                   UeSchedule.jourSemaineLabel(jour),
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
@@ -190,19 +191,19 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
+                      color: AppColors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(Brutal.radius),
                     ),
                     child: const Text(
                       "Aujourd'hui",
-                      style: TextStyle(color: Colors.white, fontSize: 12),
+                      style: TextStyle(color: AppColors.white, fontSize: 12),
                     ),
                   ),
                 if (schedules.isNotEmpty)
                   Text(
                     '${schedules.length} cours',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
+                      color: AppColors.white.withOpacity(0.8),
                       fontSize: 13,
                     ),
                   ),
@@ -215,7 +216,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               padding: const EdgeInsets.all(16),
               child: Text(
                 'Pas de cours',
-                style: TextStyle(color: Colors.grey[400], fontStyle: FontStyle.italic),
+                style: TextStyle(color: AppColors.inkMuted, fontStyle: FontStyle.italic),
               ),
             )
           else
@@ -230,7 +231,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: Colors.grey[200]!),
+          bottom: BorderSide(color: AppColors.line),
         ),
       ),
       child: Row(
@@ -241,8 +242,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             width: 90,
             padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
             decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(8),
+              color: AppColors.blue,
+              borderRadius: BorderRadius.circular(Brutal.radiusSmall),
             ),
             child: Column(
               children: [
@@ -250,14 +251,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   schedule.heureDebut,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue[700],
+                    color: AppColors.blue,
                     fontSize: 14,
                   ),
                 ),
                 Text(
                   schedule.heureFin,
                   style: TextStyle(
-                    color: Colors.blue[400],
+                    color: AppColors.blue,
                     fontSize: 13,
                   ),
                 ),
@@ -281,26 +282,26 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 Text(
                   schedule.ueNom,
                   style: TextStyle(
-                    color: Colors.grey[600],
+                    color: AppColors.inkMuted,
                     fontSize: 13,
                   ),
                 ),
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    Icon(Icons.location_on, size: 14, color: Colors.grey[400]),
+                    Icon(Icons.location_on, size: 14, color: AppColors.inkMuted),
                     const SizedBox(width: 4),
                     Text(
                       schedule.campusName,
-                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                      style: TextStyle(fontSize: 12, color: AppColors.inkMuted),
                     ),
                     if (schedule.salle != null && schedule.salle!.isNotEmpty) ...[
                       const SizedBox(width: 12),
-                      Icon(Icons.meeting_room, size: 14, color: Colors.grey[400]),
+                      Icon(Icons.meeting_room, size: 14, color: AppColors.inkMuted),
                       const SizedBox(width: 4),
                       Text(
                         'Salle ${schedule.salle}',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                        style: TextStyle(fontSize: 12, color: AppColors.inkMuted),
                       ),
                     ],
                   ],

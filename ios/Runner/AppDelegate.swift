@@ -13,8 +13,14 @@ import FirebaseMessaging
     // Configurer Firebase en natif (nécessaire pour les push notifications iOS)
     FirebaseApp.configure()
 
-    // TODO: Remplacez YOUR_GOOGLE_MAPS_API_KEY par votre vraie clé API
-    GMSServices.provideAPIKey("YOUR_GOOGLE_MAPS_API_KEY")
+    // Clé Google Maps, lue dans Info.plist plutôt qu'écrite ici : elle suit
+    // ainsi la même voie que sur Android, où le build l'injecte depuis
+    // local.properties. Google Maps ne sert qu'au rendu de la carte — le
+    // géocodage et les itinéraires passent par OpenStreetMap (OsmService).
+    if let cle = Bundle.main.object(forInfoDictionaryKey: "GMSApiKey") as? String,
+       !cle.isEmpty {
+      GMSServices.provideAPIKey(cle)
+    }
     GeneratedPluginRegistrant.register(with: self)
 
     // Enregistrer pour les notifications push

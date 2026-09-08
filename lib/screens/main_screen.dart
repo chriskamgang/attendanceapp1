@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../bus/app/core/widgets/brutal_bottom_nav.dart';
+import '../shared/rh_ui.dart';
 import 'home/home_screen.dart';
 import 'attendance/history_screen.dart';
 import 'profile/profile_screen.dart';
@@ -92,39 +94,22 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
+      // Meme barre que l'espace bus : l'onglet actif recoit un bloc plein
+      // encadre, lisible du coin de l'oeil la ou une teinte seule se perd.
+      bottomNavigationBar: BrutalBottomNav(
         currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+        onTap: (index) => setState(() => _currentIndex = index),
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Accueil',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'Historique',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.task_alt),
-            label: 'Taches',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profil',
-          ),
+          BrutalNavItem(icon: Icons.home_rounded, label: 'Accueil'),
+          BrutalNavItem(icon: Icons.history_rounded, label: 'Historique'),
+          BrutalNavItem(icon: Icons.task_alt_rounded, label: 'Tâches'),
+          BrutalNavItem(icon: Icons.person_rounded, label: 'Profil'),
         ],
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        showUnselectedLabels: true,
       ),
     );
   }

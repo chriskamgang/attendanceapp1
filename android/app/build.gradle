@@ -22,10 +22,14 @@ if (flutterVersionName == null) {
     flutterVersionName = '1.0'
 }
 
+// La clé Google Maps n'est pas versionnée : elle est lue dans
+// android/local.properties, aux côtés des chemins du SDK.
+def mapsApiKey = localProperties.getProperty('MAPS_API_KEY') ?: ''
+
 android {
     namespace "com.estuaire.attendance_app"
     compileSdk 36
-    ndkVersion "27.0.12077973"
+    ndkVersion "28.2.13676358"
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -48,6 +52,11 @@ android {
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         multiDexEnabled true
+
+        // INSAM BUS : clé Google Maps de la carte de suivi. Elle vit dans
+        // local.properties, hors dépôt. Absente, la carte s'affiche grise —
+        // le reste de l'application n'en dépend pas.
+        manifestPlaceholders += [MAPS_API_KEY: mapsApiKey]
     }
 
     buildTypes {
@@ -78,7 +87,7 @@ dependencies {
     implementation 'androidx.multidex:multidex:2.0.1'
 
     // Core library desugaring
-    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
 
     // Force the newer version of rootbeer to avoid duplicate classes
     implementation 'com.scottyab:rootbeer-lib:0.1.1'
