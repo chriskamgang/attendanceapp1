@@ -30,6 +30,9 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  /// Case « Je suis un étudiant » : le backend distingue les deux publics
+  /// à la connexion, l'étudiant n'ayant pas de compte de pointage.
+  bool _isStudent = false;
 
   bool _motDePasseMasque = true;
   bool _enCours = false;
@@ -76,6 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final resultat = await authProvider.login(
       _emailController.text.trim(),
       _passwordController.text,
+      isStudent: _isStudent,
     );
 
     if (!mounted) return;
@@ -277,8 +281,21 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 16),
 
-            _CaseChauffeur(
+            // Les deux publics qui ne pointent pas : l'étudiant garde le
+            // même formulaire, le chauffeur bascule sur son numéro.
+            if (!_estChauffeur) ...[
+              _CaseRole(
+                coche: _isStudent,
+                icone: Icons.school_rounded,
+                libelle: 'Je suis un étudiant',
+                onChange: (v) => setState(() => _isStudent = v),
+              ),
+              const SizedBox(height: 10),
+            ],
+            _CaseRole(
               coche: _estChauffeur,
+              icone: Icons.directions_bus_filled_rounded,
+              libelle: 'Je suis chauffeur',
               onChange: _basculerChauffeur,
             ),
             const SizedBox(height: 20),
@@ -504,10 +521,17 @@ class _PorteEtudiant extends StatelessWidget {
 /// email au numéro de téléphone — plutôt que d'ouvrir un second écran :
 /// c'est la même connexion, avec un identifiant différent, et le chauffeur
 /// n'a pas à traverser une page de plus pour saisir deux champs.
-class _CaseChauffeur extends StatelessWidget {
-  const _CaseChauffeur({required this.coche, required this.onChange});
+class _CaseRole extends StatelessWidget {
+  const _CaseRole({
+    required this.coche,
+    required this.icone,
+    required this.libelle,
+    required this.onChange,
+  });
 
   final bool coche;
+  final IconData icone;
+  final String libelle;
   final ValueChanged<bool> onChange;
 
   @override
@@ -547,15 +571,11 @@ class _CaseChauffeur extends StatelessWidget {
                   : null,
             ),
             const SizedBox(width: 11),
-            const Icon(
-              Icons.directions_bus_filled_rounded,
-              size: 18,
-              color: AppColors.ink,
-            ),
+            Icon(icone, size: 18, color: AppColors.ink),
             const SizedBox(width: 7),
-            const Expanded(
+            Expanded(
               child: Text(
-                'Je suis chauffeur',
+                libelle,
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,

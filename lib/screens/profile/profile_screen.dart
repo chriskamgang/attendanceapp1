@@ -9,7 +9,27 @@ import '../../services/api_service.dart';
 import '../../services/storage_service.dart';
 import '../../utils/constants.dart';
 import 'package:intl/intl.dart';
-import '../../shared/rh_ui.dart';
+import 'salary_advance_screen.dart';
+import 'wallet_screen.dart';
+import 'edit_profile_screen.dart';
+import '../complaints/complaints_screen.dart';
+import '../leaves/leaves_screen.dart';
+import '../absences/absences_screen.dart';
+import '../results/results_screen.dart';
+import '../certificates/certificates_screen.dart';
+import '../payslips/payslip_history_screen.dart';
+import '../messaging/conversations_screen.dart';
+import '../evaluations/evaluations_screen.dart';
+import '../cnps/cnps_screen.dart';
+import '../orgchart/orgchart_screen.dart';
+import '../onboarding/onboarding_screen.dart';
+import '../recruitment/recruitment_screen.dart';
+import '../training/training_screen.dart';
+import '../analytics/hr_analytics_screen.dart';
+import '../tasks/task_list_screen.dart';
+
+import 'package:image_picker/image_picker.dart';
+import '../../models/user.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -22,12 +42,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final ApiService _apiService = ApiService();
   Map<String, dynamic>? _salaryStatus;
   bool _isLoading = true;
+  bool _isFromCache = false;
   DateTime _selectedMonth = DateTime.now();
+
+  static const Color _primaryDark = Color(0xFF1A237E);
+  static const Color _primaryMid = Color(0xFF283593);
+  static const Color _primaryLight = Color(0xFF3949AB);
+  static const Color _surfaceGrey = Color(0xFFF5F7FA);
 
   @override
   void initState() {
     super.initState();
-    _loadSalaryStatus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = Provider.of<AuthProvider>(context, listen: false).user;
+      if (user != null && !user.isStudent()) {
+        _loadSalaryStatus();
+      } else {
+        setState(() => _isLoading = false);
+      }
+    });
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    final picker = ImagePicker();
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
+
+    if (image == null) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final result = await _apiService.uploadProfilePhoto(File(image.path));
+
+      if (result['success']) {
+        if (mounted) {
+          Provider.of<AuthProvider>(context, listen: false).setUser(result['user']);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Photo de profil mise à jour')),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'] ?? 'Erreur lors de l\'upload')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _loadSalaryStatus() async {
@@ -57,6 +129,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         };
         setState(() {
           _salaryStatus = data;
+          _isFromCache = result['fromCache'] == true;
           _isLoading = false;
         });
       } else {
@@ -182,6 +255,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       case 'administratif': return 'Administratif';
       case 'technique': return 'Technique';
       case 'direction': return 'Direction';
+      case 'etudiant': return 'Étudiant';
       default: return type ?? 'N/A';
     }
   }
@@ -192,24 +266,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = authProvider.user;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: _surfaceGrey,
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.blueDark))
+          ? const Center(child: CircularProgressIndicator(color: _primaryDark))
           : RefreshIndicator(
-              color: AppColors.blueDark,
+              color: _primaryDark,
               onRefresh: _loadSalaryStatus,
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
                   _buildSliverHeader(user),
                   SliverPadding(
-                    // La carte se détache du bandeau : collée à lui, elle
-                    // paraissait en déborder.
                     padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
-                        // Net salary highlight card
-                        _buildNetSalaryCard(),
+                        if (_isFromCache)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.orange[50],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.orange.withAlpha(80)),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.cloud_off, size: 18, color: Colors.orange[700]),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Donnees en cache - tirez pour actualiser',
+                                    style: TextStyle(fontSize: 12, color: Colors.orange[800]),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        if (user?.isStudent() ?? false)
+                          ..._buildStudentProfile(user)
+                        else ...[
+                          // Bouton Mes Taches
+                          _buildTasksButton(),
+                          const SizedBox(height: 16),
+
+                          // Net salary highlight card
+                          _buildNetSalaryCard(),
 
                         const SizedBox(height: 16),
                         // Month selector
@@ -218,6 +319,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                         // Download payslip button
                         _buildDownloadPayslipButton(),
+                        const SizedBox(height: 16),
+
                         const SizedBox(height: 16),
 
                         if (_salaryStatus != null) ...[
@@ -251,6 +354,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                           const SizedBox(height: 16),
                         ],
+
+                        ],
                       ]),
                     ),
                   ),
@@ -268,7 +373,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       expandedHeight: 260,
       floating: false,
       pinned: true,
-      backgroundColor: AppColors.blueDark,
+      backgroundColor: _primaryDark,
       surfaceTintColor: Colors.transparent,
       actions: [
         IconButton(
@@ -283,36 +388,77 @@ class _ProfileScreenState extends State<ProfileScreen> {
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: const BoxDecoration(
-            color: AppColors.blueDark,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [_primaryDark, _primaryMid, _primaryLight],
+            ),
           ),
           child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 56, 20, 46),
+            child: SingleChildScrollView(
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 40, 20, 30),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: AppColors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(Brutal.radius),
-                      border: Border.all(
-                        color: AppColors.white.withValues(alpha: 0.3),
-                        width: 1.5,
+                  Stack(
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.3),
+                            width: 2,
+                          ),
+                          image: user?.photo != null
+                              ? DecorationImage(
+                                  image: NetworkImage(user!.getPhotoUrl(ApiConstants.baseUrl)),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                        child: user?.photo == null
+                            ? Center(
+                                child: Text(
+                                  user?.firstName != null && user!.firstName.isNotEmpty
+                                      ? user.firstName.substring(0, 1).toUpperCase()
+                                      : 'U',
+                                  style: const TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              )
+                            : null,
                       ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        user?.firstName?.substring(0, 1).toUpperCase() ?? 'U',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.white,
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: GestureDetector(
+                          onTap: _pickAndUploadImage,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black12,
+                                  blurRadius: 4,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(Icons.camera_alt_rounded, size: 16, color: _primaryDark),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                   const SizedBox(height: 10),
                   Text(
@@ -320,15 +466,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: const TextStyle(
                       fontSize: 19,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.white,
+                      color: Colors.white,
                     ),
                   ),
                   const SizedBox(height: 5),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
                     decoration: BoxDecoration(
-                      color: AppColors.white.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(Brutal.radius),
+                      color: Colors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       _getEmployeeTypeLabel(user?.employeeType),
@@ -344,7 +490,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     user?.email ?? '',
                     style: TextStyle(
                       fontSize: 11,
-                      color: AppColors.white.withValues(alpha: 0.5),
+                      color: Colors.white.withValues(alpha: 0.5),
                     ),
                   ),
                 ],
@@ -364,13 +510,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(Brutal.radius),
-        border: Border.all(color: AppColors.ink, width: Brutal.border),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.ink,
-            offset: const Offset(4, 4),
+            color: Colors.green.withValues(alpha: 0.15),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -382,7 +528,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _isVacataire ? 'Net à Percevoir' : 'Salaire Net Estimé',
               style: TextStyle(
                 fontSize: 13,
-                color: AppColors.inkMuted,
+                color: Colors.grey[500],
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -392,14 +538,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: netSalary > 0 ? AppColors.success : AppColors.inkMuted,
+                color: netSalary > 0 ? Colors.green[700] : Colors.grey[400],
               ),
             ),
             if (_isVacataire) ...[
               const SizedBox(height: 4),
               Text(
                 '${_formatHours(salary['hours_worked'])} x ${_formatCurrency(salary['hourly_rate'])}/h',
-                style: TextStyle(fontSize: 12, color: AppColors.inkMuted),
+                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
               ),
             ],
           ],
@@ -415,13 +561,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(Brutal.radius),
-          border: Border.all(color: AppColors.ink, width: Brutal.border),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: AppColors.ink,
-              offset: const Offset(2, 2),
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -431,10 +577,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: AppColors.blueDark.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(Brutal.radius),
+                color: _primaryDark.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.calendar_month_rounded, color: AppColors.blueDark, size: 20),
+              child: const Icon(Icons.calendar_month_rounded, color: _primaryDark, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -443,11 +589,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.ink,
+                  color: Color(0xFF1A1A2E),
                 ),
               ),
             ),
-            Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.inkMuted),
+            Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey[400]),
           ],
         ),
       ),
@@ -461,11 +607,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         decoration: BoxDecoration(
-          color: AppColors.blueDark,
-          borderRadius: BorderRadius.circular(Brutal.radius),
+          gradient: const LinearGradient(
+            colors: [_primaryDark, _primaryLight],
+          ),
+          borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: AppColors.blueDark.withValues(alpha: 0.25),
+              color: _primaryDark.withValues(alpha: 0.25),
+              blurRadius: 10,
               offset: const Offset(0, 4),
             ),
           ],
@@ -479,21 +628,737 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 height: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: AppColors.white,
+                  color: Colors.white,
                 ),
               )
             else
-              const Icon(Icons.picture_as_pdf_rounded, color: AppColors.white, size: 20),
+              const Icon(Icons.picture_as_pdf_rounded, color: Colors.white, size: 20),
             const SizedBox(width: 10),
             Text(
               _isDownloading ? 'Téléchargement...' : 'Télécharger la Fiche de Paie',
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppColors.white,
+                color: Colors.white,
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWalletButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1A237E), Color(0xFF283593)],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1A237E).withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const WalletScreen()),
+            );
+          },
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.account_balance_wallet, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Mon Portefeuille',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Consulter le solde et retirer',
+                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right, color: Colors.white70, size: 22),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSalaryAdvanceButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF00897B), Color(0xFF00695C)],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF00897B).withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SalaryAdvanceScreen()),
+            );
+          },
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.money, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Demande d\'avance sur salaire',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Soumettre une demande',
+                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== TASKS BUTTON =====
+  Widget _buildTasksButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF5C6BC0), Color(0xFF3949AB)],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF5C6BC0).withAlpha(76),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const TaskListScreen()),
+            );
+          },
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(51),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.task_alt, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Mes Taches', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      SizedBox(height: 2),
+                      Text('Voir et gerer vos taches assignees', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== ABSENCES & TARDINESS BUTTON =====
+  Widget _buildAbsencesButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFE53935), Color(0xFFC62828)],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFE53935).withAlpha(76),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AbsencesScreen()),
+            );
+          },
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(51),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Absences & Retards', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('Consulter et justifier', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== LEAVE REQUEST BUTTON =====
+  Widget _buildLeaveRequestButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF5C6BC0), Color(0xFF3949AB)],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF5C6BC0).withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LeavesScreen()),
+            );
+          },
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.event_note, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Mes Conges', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('Demander et suivre vos conges', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== CERTIFICATES BUTTON =====
+  Widget _buildCertificatesButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFF00897B), Color(0xFF00695C)]),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: const Color(0xFF00897B).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CertificatesScreen())),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.white.withAlpha(51), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.description_outlined, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Attestations', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('Demander une attestation de travail', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== PAYSLIP HISTORY BUTTON =====
+  Widget _buildPayslipHistoryButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFF7B1FA2), Color(0xFF6A1B9A)]),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: const Color(0xFF7B1FA2).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PayslipHistoryScreen())),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.white.withAlpha(51), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.receipt_long, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Fiches de Paie', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('Historique et telechargement', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== MESSAGING BUTTON =====
+  Widget _buildMessagingButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFF0277BD), Color(0xFF01579B)]),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: const Color(0xFF0277BD).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ConversationsScreen())),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.white.withAlpha(51), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.chat_bubble_outline, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Messagerie', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('Discuter avec vos collegues', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== EVALUATIONS BUTTON =====
+  Widget _buildEvaluationsButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFF283593), Color(0xFF1A237E)]),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: const Color(0xFF283593).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EvaluationsScreen())),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.white.withAlpha(51), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.rate_review, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Evaluations', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('Evaluations annuelles et auto-evaluation', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== CNPS BUTTON =====
+  Widget _buildCnpsButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFF2E7D32), Color(0xFF1B5E20)]),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: const Color(0xFF2E7D32).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CnpsScreen())),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.white.withAlpha(51), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.account_balance, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('CNPS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('Dossier et cotisations CNPS', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== ORGCHART BUTTON =====
+  Widget _buildOrgChartButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFF6A1B9A), Color(0xFF4A148C)]),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: const Color(0xFF6A1B9A).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OrgChartScreen())),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.white.withAlpha(51), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.account_tree, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Organigramme', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('Structure et hierarchie', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== ONBOARDING BUTTON =====
+  Widget _buildOnboardingButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFF00796B), Color(0xFF00695C)]),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: const Color(0xFF00796B).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OnboardingScreen())),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.white.withAlpha(51), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.assignment_ind, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Onboarding', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('Integration et depart', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== RECRUITMENT BUTTON =====
+  Widget _buildRecruitmentButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFFE65100), Color(0xFFBF360C)]),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: const Color(0xFFE65100).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RecruitmentScreen())),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.white.withAlpha(51), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.work, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Recrutement', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('Offres d\'emploi et candidatures', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== TRAINING BUTTON =====
+  Widget _buildTrainingButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFF1565C0), Color(0xFF0D47A1)]),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: const Color(0xFF1565C0).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrainingScreen())),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.white.withAlpha(51), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.school, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Formations', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('E-learning et sessions de formation', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===== ANALYTICS BUTTON =====
+  Widget _buildAnalyticsButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFF455A64), Color(0xFF37474F)]),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: const Color(0xFF455A64).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HrAnalyticsScreen())),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.white.withAlpha(51), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.analytics, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Analytics RH', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('Tableaux de bord et tendances', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -509,14 +1374,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       icon: Icons.payments_rounded,
       iconColor: const Color(0xFF2E7D32),
       children: [
-        _buildBreakdownRow('Taux Horaire', _formatCurrency(salary['hourly_rate']), AppColors.blue),
+        _buildBreakdownRow('Taux Horaire', _formatCurrency(salary['hourly_rate']), const Color(0xFF1565C0)),
         _buildBreakdownRow('Heures Travaillées', _formatHours(salary['hours_worked']), const Color(0xFF00897B)),
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 8),
           child: Divider(height: 1),
         ),
-        _buildBreakdownRow('Montant Brut', _formatCurrency(salary['gross_salary']), AppColors.inkMuted),
-        _buildBreakdownRow('Déductions', '-${_formatCurrency(salary['total_deductions'])}', AppColors.danger),
+        _buildBreakdownRow('Montant Brut', _formatCurrency(salary['gross_salary']), Colors.grey[700]!),
+        _buildBreakdownRow('Déductions', '-${_formatCurrency(salary['total_deductions'])}', Colors.red[600]!),
       ],
     );
   }
@@ -535,11 +1400,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       icon: Icons.account_balance_wallet_rounded,
       iconColor: const Color(0xFF2E7D32),
       children: [
-        _buildBreakdownRow('Salaire Brut', _formatCurrency(salary['gross_salary']), AppColors.inkMuted),
+        _buildBreakdownRow('Salaire Brut', _formatCurrency(salary['gross_salary']), Colors.grey[700]!),
         _buildBreakdownRow('Heures Travaillées', hoursDisplay, const Color(0xFF00897B)),
-        _buildBreakdownRow('Jours Travaillés', '${(attendance['days_worked'] is num ? (attendance['days_worked'] as num).toStringAsFixed(2) : attendance['days_worked'])} jours', AppColors.blue),
-        _buildBreakdownRow('Retards', '${lateness['total_late_minutes']} min', AppColors.warning),
-        _buildBreakdownRow('Déductions', '-${_formatCurrency(salary['total_deductions'])}', AppColors.danger),
+        _buildBreakdownRow('Jours Travaillés', '${(attendance['days_worked'] is num ? (attendance['days_worked'] as num).toStringAsFixed(2) : attendance['days_worked'])} jours', const Color(0xFF1565C0)),
+        _buildBreakdownRow('Retards', '${lateness['total_late_minutes']} min', Colors.orange[700]!),
+        _buildBreakdownRow('Déductions', '-${_formatCurrency(salary['total_deductions'])}', Colors.red[600]!),
       ],
     );
   }
@@ -552,7 +1417,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return _buildSection(
       title: 'Présence (Emploi du Temps)',
       icon: Icons.event_note_rounded,
-      iconColor: AppColors.blue,
+      iconColor: const Color(0xFF1565C0),
       children: [
         Row(
           children: [
@@ -561,7 +1426,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 '${attendance['scheduled_days'] ?? attendance['working_days']}',
                 'Programmés',
                 Icons.event_note_rounded,
-                AppColors.blue,
+                const Color(0xFF1565C0),
               ),
             ),
             const SizedBox(width: 10),
@@ -579,7 +1444,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 '${attendance['days_missed'] ?? attendance['days_not_worked']}',
                 'Manqués',
                 Icons.cancel_rounded,
-                AppColors.danger,
+                const Color(0xFFD32F2F),
               ),
             ),
             const SizedBox(width: 10),
@@ -608,7 +1473,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return _buildSection(
       title: 'Statistiques de Présence',
       icon: Icons.bar_chart_rounded,
-      iconColor: AppColors.blue,
+      iconColor: const Color(0xFF1565C0),
       children: [
         Row(
           children: [
@@ -617,7 +1482,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 '${attendance['working_days']}',
                 'Ouvrables',
                 Icons.date_range_rounded,
-                AppColors.blue,
+                const Color(0xFF1565C0),
               ),
             ),
             const SizedBox(width: 10),
@@ -644,7 +1509,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 '${attendance['days_justified']}',
                 'Justifiées',
                 Icons.verified_rounded,
-                AppColors.warning,
+                const Color(0xFFF57C00),
               ),
             ),
           ],
@@ -661,7 +1526,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return _buildSection(
       title: 'Détail des Déductions',
       icon: Icons.receipt_long_rounded,
-      iconColor: AppColors.danger,
+      iconColor: const Color(0xFFD32F2F),
       children: [
         if (!_isVacataire) ...[
           _buildDeductionTile(
@@ -669,7 +1534,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             '${lateness['total_late_minutes']} min',
             deductions['late_penalty_amount'],
             Icons.schedule_rounded,
-            AppColors.warning,
+            const Color(0xFFF57C00),
           ),
         ],
         if (!_isVacataire) ...[
@@ -679,7 +1544,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             '${(_salaryStatus!['attendance']['days_not_worked'] ?? 0) - (_salaryStatus!['attendance']['days_justified'] ?? 0)} jours',
             deductions['absence_deduction'] ?? 0,
             Icons.cancel_rounded,
-            AppColors.danger,
+            const Color(0xFFD32F2F),
           ),
         ],
         const SizedBox(height: 8),
@@ -696,7 +1561,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           null,
           deductions['loan_deductions'] ?? 0,
           Icons.account_balance_rounded,
-          AppColors.blueDark,
+          const Color(0xFF283593),
         ),
 
         // Manual deduction details
@@ -704,22 +1569,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
             (deductions['manual_deductions_details'] as List).isNotEmpty) ...[
           const SizedBox(height: 14),
           Text('Détails Déductions Manuelles',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.inkMuted)),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[700])),
           const SizedBox(height: 8),
           ...(deductions['manual_deductions_details'] as List).map(
             (detail) => _buildManualDeductionDetail(detail),
           ),
         ],
 
-        // Loan details
+        // Loan details (deductions this month)
         if (deductions['loan_deductions_details'] != null &&
             (deductions['loan_deductions_details'] as List).isNotEmpty) ...[
           const SizedBox(height: 14),
           Text('Détails Prêts en Cours',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.inkMuted)),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[700])),
           const SizedBox(height: 8),
           ...(deductions['loan_deductions_details'] as List).map(
             (loan) => _buildLoanDetail(loan),
+          ),
+        ],
+
+        // Active loans (including future deductions)
+        if (deductions['active_loans'] != null &&
+            (deductions['active_loans'] as List).isNotEmpty &&
+            (deductions['loan_deductions_details'] == null ||
+             (deductions['loan_deductions_details'] as List).isEmpty)) ...[
+          const SizedBox(height: 14),
+          Text('Avances / Prêts Actifs',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[700])),
+          const SizedBox(height: 8),
+          ...(deductions['active_loans'] as List).map(
+            (loan) => _buildLoanDetail(Map<String, dynamic>.from(loan)),
           ),
         ],
       ],
@@ -734,7 +1613,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return _buildSection(
       title: 'Détail par UE',
       icon: Icons.receipt_long_rounded,
-      iconColor: AppColors.blue,
+      iconColor: const Color(0xFF1565C0),
       children: [
         ...ueBreakdown.map((ue) {
           final niveau = ue['niveau'] ?? '';
@@ -747,7 +1626,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // Couleur selon le niveau
           final Color niveauColor;
           if (niveau.toString().toLowerCase().contains('licence')) {
-            niveauColor = AppColors.blue;
+            niveauColor = const Color(0xFF1565C0);
           } else if (niveau.toString().toLowerCase().contains('master')) {
             niveauColor = const Color(0xFF7B1FA2);
           } else {
@@ -759,7 +1638,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: niveauColor.withValues(alpha: 0.04),
-              borderRadius: BorderRadius.circular(Brutal.radius),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: niveauColor.withValues(alpha: 0.12)),
             ),
             child: Column(
@@ -771,7 +1650,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: niveauColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(Brutal.radiusSmall),
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         niveau.toString().isNotEmpty ? niveau.toString() : 'BTS',
@@ -801,11 +1680,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     Text(
                       'Taux: ${_formatCurrency(taux)}/h',
-                      style: TextStyle(fontSize: 11, color: AppColors.inkMuted),
+                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                     ),
                     Text(
                       '${_formatHours(heures)} travaillées',
-                      style: TextStyle(fontSize: 11, color: AppColors.inkMuted),
+                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -841,7 +1720,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: AppColors.success,
+                color: Colors.green[700],
               ),
             ),
           ],
@@ -858,7 +1737,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return _buildSection(
       title: 'UE Programmées',
       icon: Icons.school_rounded,
-      iconColor: AppColors.blueDark,
+      iconColor: const Color(0xFF283593),
       children: [
         ...ueSummary.map((ue) {
           final jours = (ue['jours'] as List).join(', ');
@@ -866,8 +1745,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.blueDark.withValues(alpha: 0.04),
-              borderRadius: BorderRadius.circular(Brutal.radius),
+              color: const Color(0xFF283593).withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
               children: [
@@ -875,15 +1754,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: AppColors.blueDark.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(Brutal.radius),
+                    color: const Color(0xFF283593).withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: Center(
                     child: Text(
                       '${ue['creneaux_par_semaine']}x',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: AppColors.blueDark,
+                        color: Color(0xFF283593),
                         fontSize: 13,
                       ),
                     ),
@@ -899,7 +1778,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                       ),
                       const SizedBox(height: 2),
-                      Text(jours, style: TextStyle(fontSize: 12, color: AppColors.inkMuted)),
+                      Text(jours, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
                     ],
                   ),
                 ),
@@ -921,13 +1800,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(Brutal.radius),
-        border: Border.all(color: AppColors.ink, width: Brutal.border),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.ink,
-            offset: const Offset(2, 2),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -943,7 +1822,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   height: 32,
                   decoration: BoxDecoration(
                     color: iconColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(Brutal.radiusSmall),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(icon, color: iconColor, size: 18),
                 ),
@@ -953,7 +1832,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.ink,
+                    color: Color(0xFF1A1A2E),
                   ),
                 ),
               ],
@@ -972,7 +1851,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontSize: 13, color: AppColors.inkMuted)),
+          Text(label, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
           Text(
             value,
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: valueColor),
@@ -987,7 +1866,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(Brutal.radius),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         children: [
@@ -1005,7 +1884,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Text(
             label,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 10, color: AppColors.inkMuted, fontWeight: FontWeight.w500),
+            style: TextStyle(fontSize: 10, color: Colors.grey[500], fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -1017,7 +1896,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(Brutal.radius),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: color.withValues(alpha: 0.12)),
       ),
       child: Row(
@@ -1027,7 +1906,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             height: 34,
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(Brutal.radiusSmall),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: color, size: 18),
           ),
@@ -1038,7 +1917,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                 if (subtitle != null)
-                  Text(subtitle, style: TextStyle(fontSize: 11, color: AppColors.inkMuted)),
+                  Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey[500])),
               ],
             ),
           ),
@@ -1057,7 +1936,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF3F3),
-        borderRadius: BorderRadius.circular(Brutal.radius),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1073,26 +1952,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               Text(
                 _formatCurrency(detail['amount']),
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.danger),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.red[700]),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
             'Par ${detail['applied_by']} le ${detail['applied_at']}',
-            style: TextStyle(fontSize: 10, color: AppColors.inkMuted),
+            style: TextStyle(fontSize: 10, color: Colors.grey[500]),
           ),
         ],
       ),
     );
   }
 
+  num _toNum(dynamic value) {
+    if (value == null) return 0;
+    if (value is num) return value;
+    return num.tryParse(value.toString()) ?? 0;
+  }
+
   Widget _buildLoanDetail(Map<String, dynamic> loan) {
-    final totalAmount = loan['total_amount'] ?? 0;
-    final amountPaid = loan['amount_paid'] ?? 0;
-    final remainingAmount = loan['remaining_amount'] ?? 0;
-    final monthlyAmount = loan['monthly_amount'] ?? 0;
-    final deductionThisMonth = loan['deduction_this_month'] ?? 0;
+    final totalAmount = _toNum(loan['total_amount']);
+    final amountPaid = _toNum(loan['amount_paid']);
+    final remainingAmount = _toNum(loan['remaining_amount']);
+    final monthlyAmount = _toNum(loan['monthly_amount']);
+    final deductionThisMonth = _toNum(loan['deduction_this_month']);
     final progress = totalAmount > 0 ? (amountPaid / totalAmount) * 100 : 0;
 
     return Container(
@@ -1100,7 +1985,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFFF3F4FF),
-        borderRadius: BorderRadius.circular(Brutal.radius),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1118,7 +2003,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     Text(
                       'Mensualité: ${_formatCurrency(monthlyAmount)}',
-                      style: TextStyle(fontSize: 11, color: AppColors.inkMuted),
+                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -1126,12 +2011,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.blueDark.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(Brutal.radiusSmall),
+                  color: deductionThisMonth > 0
+                      ? const Color(0xFF283593).withValues(alpha: 0.1)
+                      : Colors.orange[50],
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  '${_formatCurrency(deductionThisMonth)}',
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.blueDark),
+                  deductionThisMonth > 0
+                      ? _formatCurrency(deductionThisMonth)
+                      : 'Début: ${loan['start_date'] ?? 'Prochain mois'}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: deductionThisMonth > 0 ? const Color(0xFF283593) : Colors.orange[800],
+                  ),
                 ),
               ),
             ],
@@ -1141,31 +2034,237 @@ class _ProfileScreenState extends State<ProfileScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Payé: ${_formatCurrency(amountPaid)}',
-                  style: TextStyle(fontSize: 10, color: AppColors.success, fontWeight: FontWeight.w600)),
+                  style: TextStyle(fontSize: 10, color: Colors.green[700], fontWeight: FontWeight.w600)),
               Text('Reste: ${_formatCurrency(remainingAmount)}',
-                  style: TextStyle(fontSize: 10, color: AppColors.warning, fontWeight: FontWeight.w600)),
+                  style: TextStyle(fontSize: 10, color: Colors.orange[700], fontWeight: FontWeight.w600)),
             ],
           ),
           const SizedBox(height: 6),
           ClipRRect(
-            borderRadius: BorderRadius.circular(Brutal.radiusSmall),
+            borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: progress / 100,
-              backgroundColor: AppColors.line,
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.success),
+              backgroundColor: Colors.grey[200],
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.green[500]!),
               minHeight: 6,
             ),
           ),
           const SizedBox(height: 4),
           Text('${progress.toStringAsFixed(1)}% remboursé',
-              style: TextStyle(fontSize: 10, color: AppColors.inkMuted)),
+              style: TextStyle(fontSize: 10, color: Colors.grey[500])),
 
           if (loan['reason'] != null && loan['reason'].toString().isNotEmpty) ...[
             const SizedBox(height: 6),
             Text('Motif: ${loan['reason']}',
-                style: TextStyle(fontSize: 10, color: AppColors.inkMuted, fontStyle: FontStyle.italic)),
+                style: TextStyle(fontSize: 10, color: Colors.grey[600], fontStyle: FontStyle.italic)),
           ],
         ],
+      ),
+    );
+  }
+
+  List<Widget> _buildStudentProfile(User? user) {
+    return [
+      const SizedBox(height: 16),
+      _buildProfileActionButton(
+        icon: Icons.edit_rounded,
+        title: 'Modifier le profil',
+        subtitle: 'Mettre à jour vos informations',
+        color: Colors.blue[700]!,
+        onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen()));
+        },
+      ),
+      const SizedBox(height: 12),
+      _buildProfileActionButton(
+        icon: Icons.feedback_rounded,
+        title: 'Plaintes',
+        subtitle: 'Envoyer une réclamation ou plainte',
+        color: Colors.orange[700]!,
+        onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const ComplaintsScreen()));
+        },
+      ),
+      const SizedBox(height: 12),
+      _buildProfileActionButton(
+        icon: Icons.school_rounded,
+        title: 'Mes Résultats',
+        subtitle: 'Consulter CC et examens',
+        color: Colors.indigo[700]!,
+        onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const ResultsScreen()));
+        },
+      ),
+      const SizedBox(height: 24),
+      _buildSectionHeader('Informations Personnelles'),
+      _buildInfoCard([
+        _buildInfoRow('Nom Complet', user?.fullName ?? ''),
+        _buildInfoRow('Matricule', user?.employeeId ?? 'N/A'),
+        _buildInfoRow('Email', user?.email ?? ''),
+        _buildInfoRow('Téléphone', user?.phone ?? 'N/A'),
+      ]),
+      const SizedBox(height: 16),
+      _buildSectionHeader('Informations Académiques'),
+      _buildInfoCard([
+        _buildInfoRow('Spécialité', user?.specialite ?? 'N/A'),
+        _buildInfoRow('Niveau', user?.niveau ?? 'N/A'),
+      ]),
+      const SizedBox(height: 16),
+      _buildSectionHeader('Mes Campus'),
+      _buildInfoCard(
+        user?.campuses.map<Widget>((c) => _buildInfoRow(c.name, c.address)).toList() ?? [const Text('Aucun campus assigné')],
+      ),
+      const SizedBox(height: 24),
+      _buildLogoutButton(),
+      const SizedBox(height: 32),
+    ];
+  }
+
+  Widget _buildProfileActionButton({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: color, size: 24),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1A1A2E),
+                        ),
+                      ),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded, color: Colors.grey[400]),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      child: Text(
+        title.toUpperCase(),
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: Colors.grey[600],
+          letterSpacing: 1.1,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoCard(List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: children,
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Flexible(
+            flex: 2,
+            child: Text(
+              label,
+              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            flex: 3,
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.visible,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLogoutButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: ElevatedButton.icon(
+        onPressed: _logout,
+        icon: const Icon(Icons.logout),
+        label: const Text('SE DÉCONNECTER'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.red[50],
+          foregroundColor: Colors.red[700],
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
       ),
     );
   }

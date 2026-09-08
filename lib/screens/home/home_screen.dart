@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -5,6 +6,7 @@ import '../../providers/attendance_provider.dart';
 import '../../models/campus.dart';
 import '../../models/unite_enseignement.dart';
 import '../../services/api_service.dart';
+import '../../services/offline_queue_service.dart';
 import '../../models/task.dart';
 import '../../services/location_service.dart';
 import '../../widgets/unite_enseignement_card.dart';
@@ -34,11 +36,41 @@ class _HomeScreenState extends State<HomeScreen> {
   int _breakElapsedMinutes = 0;
   bool _breakLoading = false;
   List<Task> _myTasks = [];
+  int _pendingOfflineCount = 0;
+  bool _isOnline = true;
+  bool _isFromCache = false;
+  StreamSubscription? _onlineSub;
+  StreamSubscription? _pendingSub;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _initOfflineListeners();
+  }
+
+  void _initOfflineListeners() {
+    final offlineQueue = OfflineQueueService();
+    _isOnline = offlineQueue.isOnline;
+
+    _onlineSub = offlineQueue.onlineStatusStream.listen((online) {
+      if (mounted) setState(() => _isOnline = online);
+    });
+    _pendingSub = offlineQueue.pendingCountStream.listen((count) {
+      if (mounted) setState(() => _pendingOfflineCount = count);
+    });
+
+    // Charger le compte initial
+    offlineQueue.getPendingCount().then((count) {
+      if (mounted) setState(() => _pendingOfflineCount = count);
+    });
+  }
+
+  @override
+  void dispose() {
+    _onlineSub?.cancel();
+    _pendingSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -48,61 +80,76 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.user;
+    final attendanceProvider = Provider.of<AttendanceProvider>(context, listen: false);
 
-    final dashResult = await _apiService.getDashboard();
-    if (dashResult['success']) {
-      _dashboardData = dashResult['data'];
-    }
+    final isTeacher = user != null && (user.isVacataire() || user.isSemiPermanent() || user.isTitulaire());
 
-    final campusResult = await _apiService.getMyCampuses();
-    if (campusResult['success']) {
-      _campuses = campusResult['campuses'];
-    }
+    try {
+      // Un seul appel API pour toutes les données de l'écran d'accueil
+      final result = await _apiService.getHomeData();
 
-    if (user != null && (user.isVacataire() || user.isSemiPermanent() || user.isTitulaire())) {
-      final ueResult = await _apiService.getUnitesEnseignement();
-      if (ueResult['success']) {
-        final data = ueResult['data'];
-        _unitesActivees = (data['unites_activees'] as List)
-            .map((ue) => UniteEnseignement.fromJson(ue))
-            .toList();
-        _unitesNonActivees = (data['unites_non_activees'] as List)
-            .map((ue) => UniteEnseignement.fromJson(ue))
-            .toList();
-        _ueStats = data['totaux'];
+      if (!mounted) return;
+
+      if (result['success'] == true) {
+        final data = result['data'] as Map<String, dynamic>;
+        final bool fromCache = result['fromCache'] == true;
+
+        // Dashboard
+        final dashData = data['dashboard'] as Map<String, dynamic>?;
+        if (dashData != null) {
+          _dashboardData = dashData;
+          // Mettre à jour le provider avec le statut actif
+          attendanceProvider.updateFromHomeData(dashData);
+        }
+
+        // Campus
+        final campusList = data['campuses'] as List?;
+        if (campusList != null) {
+          _campuses = campusList.map((c) => Campus.fromJson(Map<String, dynamic>.from(c))).toList();
+        }
+
+        // Tâches
+        final tasksList = data['tasks'] as List?;
+        if (tasksList != null) {
+          _myTasks = tasksList.map((t) => Task.fromJson(Map<String, dynamic>.from(t))).toList();
+        }
+
+        // Pause
+        final breakData = data['break'] as Map<String, dynamic>?;
+        if (breakData != null) {
+          _isOnBreak = breakData['on_break'] ?? false;
+          if (_isOnBreak && breakData['active_break'] != null) {
+            _breakStartTime = breakData['active_break']['break_start'];
+            _breakElapsedMinutes = breakData['active_break']['elapsed_minutes'] ?? 0;
+          }
+        }
+
+        // UE & Emploi du temps (enseignants)
+        if (isTeacher) {
+          final ueData = data['ue'] as Map<String, dynamic>?;
+          if (ueData != null) {
+            _unitesActivees = (ueData['unites_activees'] as List? ?? [])
+                .map((ue) => UniteEnseignement.fromJson(Map<String, dynamic>.from(ue)))
+                .toList();
+            _unitesNonActivees = (ueData['unites_non_activees'] as List? ?? [])
+                .map((ue) => UniteEnseignement.fromJson(Map<String, dynamic>.from(ue)))
+                .toList();
+            _ueStats = ueData['totaux'] as Map<String, dynamic>?;
+          }
+
+          final scheduleList = data['today_schedule'] as List?;
+          if (scheduleList != null) {
+            _todaySchedule = scheduleList.map((s) => Map<String, dynamic>.from(s)).toList();
+          }
+        }
+
+        _isFromCache = fromCache;
       }
+    } catch (e) {
+      print('Erreur chargement données: $e');
     }
 
-    if (user != null && (user.isVacataire() || user.isSemiPermanent() || user.isTitulaire())) {
-      final scheduleResult = await _apiService.getTodaySchedule();
-      if (scheduleResult['success']) {
-        _todaySchedule = List<Map<String, dynamic>>.from(scheduleResult['data'] ?? []);
-      }
-    }
-
-    // Charger les taches
-    final tasksResult = await _apiService.getMyTasks();
-    if (tasksResult['success']) {
-      _myTasks = (tasksResult['data'] as List)
-          .map((t) => Task.fromJson(t))
-          .toList();
-    }
-
-    final attendanceProvider =
-        Provider.of<AttendanceProvider>(context, listen: false);
-    await attendanceProvider.checkCurrentStatus();
-
-    // Charger le statut de pause
-    final breakResult = await _apiService.getBreakStatus();
-    if (breakResult['success'] == true) {
-      final breakData = breakResult['data'];
-      _isOnBreak = breakData['on_break'] ?? false;
-      if (_isOnBreak && breakData['active_break'] != null) {
-        _breakStartTime = breakData['active_break']['break_start'];
-        _breakElapsedMinutes = breakData['active_break']['elapsed_minutes'] ?? 0;
-      }
-    }
-
+    if (!mounted) return;
     setState(() {
       _isLoading = false;
     });
@@ -167,6 +214,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
+                        // Banniere hors-ligne / donnees en cache
+                        if (!_isOnline || _pendingOfflineCount > 0 || _isFromCache)
+                          _buildOfflineBanner(attendanceProvider),
+                        if (!_isOnline || _pendingOfflineCount > 0 || _isFromCache)
+                          const SizedBox(height: 12),
+
                         // Check-in status card
                         _buildCheckInStatus(attendanceProvider),
                         const SizedBox(height: 16),
@@ -325,6 +378,80 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildOfflineBanner(AttendanceProvider attendanceProvider) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _isOnline ? Colors.green[50] : Colors.orange[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _isOnline ? Colors.green.withAlpha(80) : Colors.orange.withAlpha(80),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            _isOnline ? Icons.cloud_done : Icons.cloud_off,
+            color: _isOnline ? Colors.green[700] : Colors.orange[700],
+            size: 22,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _isOnline ? 'Connexion retablie' : 'Mode hors-ligne',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: _isOnline ? Colors.green[800] : Colors.orange[800],
+                  ),
+                ),
+                if (_pendingOfflineCount > 0)
+                  Text(
+                    '$_pendingOfflineCount pointage(s) en attente de synchronisation',
+                    style: TextStyle(fontSize: 11, color: Colors.grey[700]),
+                  )
+                else if (!_isOnline)
+                  Text(
+                    _isFromCache
+                        ? 'Donnees en cache affichees. Le pointage GPS fonctionne hors-ligne.'
+                        : 'Le pointage GPS fonctionne. Les donnees seront synchronisees automatiquement.',
+                    style: TextStyle(fontSize: 11, color: Colors.grey[700]),
+                  ),
+              ],
+            ),
+          ),
+          if (_pendingOfflineCount > 0 && _isOnline)
+            TextButton.icon(
+              onPressed: () async {
+                final result = await attendanceProvider.syncOfflineActions();
+                if (!mounted) return;
+                final synced = result['synced'] ?? 0;
+                final failed = result['failed'] ?? 0;
+                final errors = result['errors'] as List<String>? ?? [];
+                final errorDetail = errors.isNotEmpty ? '\n${errors.first}' : '';
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('$synced synchronise(s), $failed echoue(s)$errorDetail'),
+                    backgroundColor: failed == 0 ? Colors.green : Colors.orange,
+                    duration: Duration(seconds: failed > 0 ? 5 : 3),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.sync, size: 18),
+              label: const Text('Sync', style: TextStyle(fontSize: 12)),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.green[700],
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCheckInStatus(AttendanceProvider attendanceProvider) {
     final hasActive = attendanceProvider.hasActiveCheckIn;
     final activeCheckIns = attendanceProvider.activeCheckIns;
@@ -411,6 +538,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _startBreak() async {
+    if (!_isOnline) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('La pause nécessite une connexion internet. Réessayez quand vous serez en ligne.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
     setState(() => _breakLoading = true);
     try {
       // Récupérer la position GPS
@@ -467,10 +603,19 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     }
-    setState(() => _breakLoading = false);
+    if (mounted) setState(() => _breakLoading = false);
   }
 
   Future<void> _endBreak() async {
+    if (!_isOnline) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Le retour de pause nécessite une connexion internet. Réessayez quand vous serez en ligne.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
     setState(() => _breakLoading = true);
     try {
       // Récupérer la position GPS
@@ -528,7 +673,7 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     }
-    setState(() => _breakLoading = false);
+    if (mounted) setState(() => _breakLoading = false);
   }
 
   Widget _buildBreakSection(user) {

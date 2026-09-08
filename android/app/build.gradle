@@ -26,6 +26,12 @@ if (flutterVersionName == null) {
 // android/local.properties, aux côtés des chemins du SDK.
 def mapsApiKey = localProperties.getProperty('MAPS_API_KEY') ?: ''
 
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('key.properties')
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace "com.estuaire.attendance_app"
     compileSdk 36
@@ -46,7 +52,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.estuaire.attendance_app"
+        applicationId "cm.iues.insam.attendance"
         minSdk 24
         targetSdk 36
         versionCode flutterVersionCode.toInteger()
@@ -59,9 +65,26 @@ android {
         manifestPlaceholders += [MAPS_API_KEY: mapsApiKey]
     }
 
+    // La signature de release n'est configurée que si key.properties est
+    // présent : ce fichier ne suit pas le dépôt, et un `storeFile` nul y
+    // faisait échouer jusqu'au build de debug sur les postes qui ne
+    // publient pas.
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            release {
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig signingConfigs.debug
+            signingConfig keystorePropertiesFile.exists()
+                ? signingConfigs.release
+                : signingConfigs.debug
         }
     }
 }

@@ -8,12 +8,14 @@ import 'providers/attendance_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/main_screen.dart';
 import 'screens/attendance/check_in_screen.dart';
+import 'screens/moratoire/moratoire_screen.dart';
+import 'screens/tickets/tickets_screen.dart';
 import 'services/storage_service.dart';
 import 'services/firebase_notification_service.dart';
-import 'services/geofencing_service.dart';
 import 'services/deep_link_service.dart';
 import 'services/api_service.dart';
 import 'services/update_service.dart';
+import 'services/offline_queue_service.dart';
 import 'models/campus.dart';
 import 'bus/bus_boot.dart';
 import 'bus/app/core/theme/app_theme.dart';
@@ -22,13 +24,22 @@ import 'launcher/app_mode.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialiser seulement le storage au démarrage
+  // Initialiser le storage (prioritaire)
   await StorageService().init();
 
-  // Estuaire RH est l'application ; INSAM BUS en est une porte annexe,
-  // pour les étudiants et les chauffeurs. À la première ouverture on entre
-  // donc directement dans l'espace RH, sans écran de choix : seul un
-  // passage explicite vers le transport est mémorisé ici.
+  // Initialiser la file d'attente offline en arrière-plan (non bloquant)
+  OfflineQueueService().init().timeout(
+    const Duration(seconds: 3),
+    onTimeout: () {
+      print('OfflineQueueService init timeout - continuing');
+    },
+  ).catchError((e) {
+    print('OfflineQueueService init error: $e');
+  });
+
+  // L'espace étudiant est une pile de navigation distincte : à la première
+  // ouverture on entre dans le pointage, seul un passage explicite vers
+  // l'autre espace étant mémorisé ici.
   final mode = await AppModeService().read() ?? AppMode.estuaireRh;
 
   runApp(RootApp(modeInitial: mode));
@@ -174,7 +185,6 @@ class EstuaireRhApp extends StatefulWidget {
 
 class _EstuaireRhAppState extends State<EstuaireRhApp> {
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-  final GeofencingService _geofencingService = GeofencingService();
   final DeepLinkService _deepLinkService = DeepLinkService();
   final ApiService _apiService = ApiService();
 
@@ -190,9 +200,17 @@ class _EstuaireRhAppState extends State<EstuaireRhApp> {
       try {
         await initializeDateFormatting('fr_FR', null);
         await FirebaseNotificationService().initialize();
-        print('✓ Services initialisés');
+        print('Services initialisés');
       } catch (e) {
-        print('⚠ Erreur initialisation: $e');
+        print('Erreur initialisation: $e');
+      }
+    });
+
+    // Vérifier les mises à jour après que la navigation soit prête (non-bloquant)
+    Future.delayed(const Duration(seconds: 2), () {
+      final navContext = navigatorKey.currentContext;
+      if (navContext != null) {
+        UpdateService().checkForUpdate(navContext);
       }
     });
 
@@ -257,6 +275,22 @@ class _EstuaireRhAppState extends State<EstuaireRhApp> {
           }
         }
       };
+
+      FirebaseNotificationService().onMoratoriumTapped = (data) {
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (context) => const MoratoireScreen(),
+          ),
+        );
+      };
+
+      FirebaseNotificationService().onTicketUpdateTapped = (data) {
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (context) => const TicketsScreen(),
+          ),
+        );
+      };
     } catch (e) {
       print('⚠ Erreur deep links: $e');
     }
@@ -265,7 +299,6 @@ class _EstuaireRhAppState extends State<EstuaireRhApp> {
   @override
   void dispose() {
     _deepLinkService.dispose();
-    _geofencingService.stop();
     super.dispose();
   }
 
@@ -274,7 +307,7 @@ class _EstuaireRhAppState extends State<EstuaireRhApp> {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => AttendanceProvider()),
+        ChangeNotifierProvider(create: (_) => AttendanceProvider()..initConnectivityListener()),
       ],
       child: MaterialApp(
         navigatorKey: navigatorKey,
@@ -321,14 +354,13 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _checkAuth() async {
     try {
-      // Vérifier les mises à jour AVANT tout
-      if (mounted) {
-        await UpdateService().checkForUpdate(context);
-      }
-
-      // Vérifier l'authentification
+      // Vérifier l'authentification en priorité (local, rapide)
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      await authProvider.checkAuth();
+      // Timeout de sécurité : ne jamais rester sur le splash plus de 5s
+      await authProvider.checkAuth().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {},
+      );
 
       if (!mounted) return;
 
@@ -338,7 +370,6 @@ class _SplashScreenState extends State<SplashScreen> {
         Navigator.of(context).pushReplacementNamed('/login');
       }
     } catch (e) {
-      print('❌ Erreur auth: $e');
       if (!mounted) return;
       Navigator.of(context).pushReplacementNamed('/login');
     }

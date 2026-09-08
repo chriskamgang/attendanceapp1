@@ -4,6 +4,7 @@ import 'campus.dart';
 
 class User {
   final int id;
+  final String? employeeId;
   final String firstName;
   final String lastName;
   final String fullName;
@@ -11,6 +12,8 @@ class User {
   final String? phone;
   final String? photo;
   final String employeeType;
+  final String? specialite;
+  final String? niveau;
   final double? hourlyRate;
   final double? monthlySalary;
   final double? volumeHoraireHebdomadaire;
@@ -23,6 +26,7 @@ class User {
 
   User({
     required this.id,
+    this.employeeId,
     required this.firstName,
     required this.lastName,
     required this.fullName,
@@ -30,6 +34,8 @@ class User {
     this.phone,
     this.photo,
     required this.employeeType,
+    this.specialite,
+    this.niveau,
     this.hourlyRate,
     this.monthlySalary,
     this.volumeHoraireHebdomadaire,
@@ -44,6 +50,7 @@ class User {
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['id'],
+      employeeId: json['employee_id'],
       firstName: json['first_name'] ?? '',
       lastName: json['last_name'] ?? '',
       fullName: json['full_name'] ?? '',
@@ -51,6 +58,8 @@ class User {
       phone: json['phone'],
       photo: json['photo'],
       employeeType: json['employee_type'] ?? '',
+      specialite: json['specialite'],
+      niveau: json['niveau'],
       hourlyRate: json['hourly_rate'] != null
           ? double.tryParse(json['hourly_rate'].toString())
           : null,
@@ -82,6 +91,7 @@ class User {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'employee_id': employeeId,
       'first_name': firstName,
       'last_name': lastName,
       'full_name': fullName,
@@ -89,6 +99,8 @@ class User {
       'phone': phone,
       'photo': photo,
       'employee_type': employeeType,
+      'specialite': specialite,
+      'niveau': niveau,
       'hourly_rate': hourlyRate,
       'monthly_salary': monthlySalary,
       'volume_horaire_hebdomadaire': volumeHoraireHebdomadaire,
@@ -113,6 +125,7 @@ class User {
   bool isAdministratif() => employeeType == 'administratif';
   bool isTechnique() => employeeType == 'technique';
   bool isDirection() => employeeType == 'direction';
+  bool isStudent() => employeeType == 'etudiant';
 
   String getJoursTravailFormatted() {
     if (joursTravail == null || joursTravail!.isEmpty) {

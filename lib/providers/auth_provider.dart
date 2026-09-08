@@ -4,6 +4,7 @@ import '../services/api_service.dart';
 import '../services/storage_service.dart';
 import '../services/device_service.dart';
 import '../services/firebase_notification_service.dart';
+import '../services/offline_cache_service.dart';
 
 class AuthProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -43,7 +44,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   // Login
-  Future<Map<String, dynamic>> login(String email, String password) async {
+  Future<Map<String, dynamic>> login(String email, String password, {bool isStudent = false}) async {
     _isLoading = true;
     notifyListeners();
 
@@ -57,12 +58,14 @@ class AuthProvider with ChangeNotifier {
         deviceId: deviceInfo['device_id']!,
         deviceModel: deviceInfo['device_model'],
         deviceOs: deviceInfo['device_os'],
+        isStudent: isStudent,
       );
 
       if (result['success']) {
         _user = User.fromJson(result['data']['user']);
         _isAuthenticated = true;
         _isLoading = false;
+        ApiService.clearTokenCache(); // Invalider l'ancien token en cache
         notifyListeners();
         // Envoyer le token FCM au backend après login
         FirebaseNotificationService().resendTokenToBackend();
@@ -99,10 +102,19 @@ class AuthProvider with ChangeNotifier {
     }
 
     await _apiService.logout();
+    ApiService.clearTokenCache(); // Invalider le token en cache
+    await OfflineCacheService().clearAllCaches();
     _user = null;
     _isAuthenticated = false;
 
     _isLoading = false;
+    notifyListeners();
+  }
+
+  // Mettre à jour l'utilisateur localement
+  void setUser(User user) {
+    _user = user;
+    _isAuthenticated = true;
     notifyListeners();
   }
 

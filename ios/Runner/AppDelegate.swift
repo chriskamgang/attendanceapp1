@@ -11,7 +11,9 @@ import FirebaseMessaging
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     // Configurer Firebase en natif (nécessaire pour les push notifications iOS)
-    FirebaseApp.configure()
+    if FirebaseApp.app() == nil {
+      FirebaseApp.configure()
+    }
 
     // Clé Google Maps, lue dans Info.plist plutôt qu'écrite ici : elle suit
     // ainsi la même voie que sur Android, où le build l'injecte depuis

@@ -30,14 +30,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
     });
 
     final result = await _apiService.getMyHistory();
-    print('=== HISTORIQUE DEBUG ===');
-    print('Result: $result');
-    print('Success: ${result['success']}');
-    print('Attendances type: ${result['attendances'].runtimeType}');
-    print('Attendances length: ${result['attendances']?.length ?? 0}');
-    print('=======================');
 
-    if (result['success']) {
+    if (!mounted) return;
+
+    if (result['success'] == true && result['attendances'] != null) {
       setState(() {
         _attendances = (result['attendances'] as List)
             .map((a) => Attendance.fromJson(a))
@@ -220,7 +216,33 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
     Duration? workedDuration;
     if (hasCheckIn && hasCheckOut) {
-      workedDuration = checkOut.timestamp.difference(checkIn.timestamp);
+      // Plafonner : check-in min 08:00, check-out max 17:00 (sauf soirée)
+      DateTime effectiveIn = checkIn.timestamp;
+      DateTime effectiveOut = checkOut.timestamp;
+
+      final workStart = DateTime(effectiveIn.year, effectiveIn.month, effectiveIn.day, 8, 0);
+      final workEnd = DateTime(effectiveIn.year, effectiveIn.month, effectiveIn.day, 17, 0);
+
+      if (effectiveIn.isBefore(workStart)) effectiveIn = workStart;
+      // Ne plafonner à 17h que si check-in avant 17h (sinon c'est une session du soir)
+      if (checkIn.timestamp.hour < 17 && effectiveOut.isAfter(workEnd)) {
+        effectiveOut = workEnd;
+      }
+
+      int totalMinutes = effectiveOut.difference(effectiveIn).inMinutes;
+
+      // Soustraire la pause déjeuner (12:00-13:00) si la session la chevauche
+      final breakStart = DateTime(effectiveIn.year, effectiveIn.month, effectiveIn.day, 12, 0);
+      final breakEnd = DateTime(effectiveIn.year, effectiveIn.month, effectiveIn.day, 13, 0);
+      if (effectiveIn.isBefore(breakEnd) && effectiveOut.isAfter(breakStart)) {
+        final overlapStart = effectiveIn.isAfter(breakStart) ? effectiveIn : breakStart;
+        final overlapEnd = effectiveOut.isBefore(breakEnd) ? effectiveOut : breakEnd;
+        final breakMinutes = overlapEnd.difference(overlapStart).inMinutes;
+        if (breakMinutes > 0) totalMinutes -= breakMinutes;
+      }
+
+      if (totalMinutes < 0) totalMinutes = 0;
+      workedDuration = Duration(minutes: totalMinutes);
     }
 
     return Card(

@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../bus/app/core/widgets/brutal_bottom_nav.dart';
-import '../shared/rh_ui.dart';
+import 'package:geolocator/geolocator.dart';
+import '../providers/auth_provider.dart';
 import 'home/home_screen.dart';
+import 'home/student_home_screen.dart';
 import 'attendance/history_screen.dart';
 import 'profile/profile_screen.dart';
-import 'tasks/task_list_screen.dart';
-import '../services/geofencing_service.dart';
+import 'moratoire/moratoire_screen.dart';
+import 'tickets/tickets_screen.dart';
+import 'rh/rh_services_screen.dart';
+import 'bus/bus_home_screen.dart';
 import '../services/location_tracking_service.dart';
-import '../services/api_service.dart';
-import '../models/campus.dart';
+import '../services/biometric_service.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -19,58 +24,74 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   int _currentIndex = 0;
-  final GeofencingService _geofencingService = GeofencingService();
-  final ApiService _apiService = ApiService();
+  bool _isLocked = false;
+  bool _biometricAvailable = false;
+  DateTime? _pausedAt;
 
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const HistoryScreen(),
-    const TaskListScreen(),
-    const ProfileScreen(),
-  ];
+  List<Widget> _getScreens(bool isStudent) {
+    if (isStudent) {
+      return [
+        const StudentHomeScreen(),
+        const HistoryScreen(),
+        const BusHomeScreen(),
+        const MoratoireScreen(),
+        const ProfileScreen(),
+      ];
+    }
+    return [
+      const HomeScreen(),
+      const HistoryScreen(),
+      const TicketsScreen(),
+      const RhServicesScreen(),
+      const ProfileScreen(),
+    ];
+  }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _initializeGeofencing();
-    _startLocationTracking();
+    _requestLocationAndStartTracking();
+    _checkBiometricAvailability();
   }
 
-  /// Démarrer le suivi de localisation en temps réel
-  Future<void> _startLocationTracking() async {
-    try {
-      await LocationTrackingService.startTracking();
-      print('✅ Suivi de localisation en temps réel démarré');
-    } catch (e) {
-      print('❌ Erreur démarrage tracking: $e');
+  Future<void> _checkBiometricAvailability() async {
+    _biometricAvailable = await BiometricService().isAvailable();
+  }
+
+  Future<void> _unlockWithBiometric() async {
+    final success = await BiometricService().authenticate();
+    if (success && mounted) {
+      setState(() => _isLocked = false);
     }
   }
 
-  Future<void> _initializeGeofencing() async {
-    try {
-      // Récupérer la liste des campus assignés à l'utilisateur
-      final result = await _apiService.getCampuses();
-      if (result['success'] == true) {
-        final campuses = result['campuses'] as List<Campus>;
+  /// Demande la permission de localisation (premier plan) et demarre le tracking
+  Future<void> _requestLocationAndStartTracking() async {
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
 
-        if (campuses.isNotEmpty) {
-          // Initialiser le géofencing avec les campus
-          await _geofencingService.initialize(campuses);
-          print('✅ Géofencing initialisé avec ${campuses.length} campus');
-        } else {
-          print('⚠️ Aucun campus assigné, géofencing non initialisé');
-        }
-      }
+    // Demarrer le tracking si la permission est accordee
+    if (permission == LocationPermission.whileInUse ||
+        permission == LocationPermission.always) {
+      _startLocationTracking();
+    }
+  }
+
+  /// Demarrer le suivi de localisation en temps reel
+  Future<void> _startLocationTracking() async {
+    try {
+      await LocationTrackingService.startTracking();
     } catch (e) {
-      print('❌ Erreur initialisation géofencing: $e');
+      print('Erreur demarrage tracking: $e');
     }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _geofencingService.stop();
     LocationTrackingService.stopTracking();
     super.dispose();
   }
@@ -79,37 +100,127 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
 
-    // Gérer le tracking selon l'état de l'app
     if (state == AppLifecycleState.paused) {
-      // App en arrière-plan - arrêter le tracking pour économiser la batterie
-      LocationTrackingService.stopTracking();
-      print('⏸️  App en arrière-plan - tracking arrêté');
+      _pausedAt = DateTime.now();
+      // Le tracking continue en arriere-plan pour maintenir la position sur la carte admin
     } else if (state == AppLifecycleState.resumed) {
-      // App revenue au premier plan - redémarrer le tracking
+      // Redemarrer le tracking au cas ou le timer aurait ete tue par le systeme
       LocationTrackingService.startTracking();
-      print('▶️  App au premier plan - tracking redémarré');
+      // Verrouiller si l'app etait en arriere-plan plus de 5 secondes
+      if (_biometricAvailable && _pausedAt != null) {
+        final elapsed = DateTime.now().difference(_pausedAt!);
+        if (elapsed.inSeconds >= 5) {
+          setState(() => _isLocked = true);
+          _unlockWithBiometric();
+        }
+      }
+      _pausedAt = null;
     }
+  }
+
+  Widget _buildLockScreen() {
+    return Scaffold(
+      body: Container(
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF1565C0), Color(0xFF0D47A1)],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.lock_outline, size: 80, color: Colors.white70),
+              const SizedBox(height: 24),
+              const Text(
+                'Application verrouillee',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Authentifiez-vous pour continuer',
+                style: TextStyle(color: Colors.white70, fontSize: 15),
+              ),
+              const SizedBox(height: 40),
+              ElevatedButton.icon(
+                onPressed: _unlockWithBiometric,
+                icon: const Icon(Icons.fingerprint, size: 28),
+                label: const Text('Deverrouiller', style: TextStyle(fontSize: 16)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: const Color(0xFF0D47A1),
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLocked) {
+      return _buildLockScreen();
+    }
+
+    final user = Provider.of<AuthProvider>(context).user;
+    final isStudent = user?.isStudent() ?? false;
+    final screens = _getScreens(isStudent);
+
+    final navItems = <BrutalNavItem>[
+      const BrutalNavItem(icon: Icons.home_rounded, label: 'Accueil'),
+      const BrutalNavItem(icon: Icons.history_rounded, label: 'Historique'),
+      if (isStudent) ...[
+        const BrutalNavItem(
+          icon: Icons.directions_bus_rounded,
+          label: 'Bus',
+        ),
+        const BrutalNavItem(icon: Icons.credit_card_rounded, label: 'Moratoire'),
+      ] else ...[
+        const BrutalNavItem(
+          icon: Icons.confirmation_number_rounded,
+          label: 'Tickets',
+        ),
+        const BrutalNavItem(
+          icon: Icons.business_center_rounded,
+          label: 'RH',
+        ),
+      ],
+      const BrutalNavItem(icon: Icons.person_rounded, label: 'Profil'),
+    ];
+
+    // Reset index if out of bounds
+    if (_currentIndex >= screens.length) {
+      _currentIndex = 0;
+    }
+
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: IndexedStack(
         index: _currentIndex,
-        children: _screens,
+        children: screens,
       ),
-      // Meme barre que l'espace bus : l'onglet actif recoit un bloc plein
-      // encadre, lisible du coin de l'oeil la ou une teinte seule se perd.
+      // L'onglet actif reçoit un bloc plein encadré, du même bleu que les
+      // bandeaux : une teinte seule se perdait du coin de l'œil.
       bottomNavigationBar: BrutalBottomNav(
         currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        items: const [
-          BrutalNavItem(icon: Icons.home_rounded, label: 'Accueil'),
-          BrutalNavItem(icon: Icons.history_rounded, label: 'Historique'),
-          BrutalNavItem(icon: Icons.task_alt_rounded, label: 'Tâches'),
-          BrutalNavItem(icon: Icons.person_rounded, label: 'Profil'),
-        ],
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        items: navItems,
       ),
     );
   }
