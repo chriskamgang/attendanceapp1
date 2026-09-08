@@ -27,7 +27,7 @@ abstract class ApiConfig {
   /// L'adresse est celle du poste sur le réseau local, et non `localhost` :
   /// depuis un téléphone, `localhost` désignerait le téléphone lui-même.
   /// Elle change avec le réseau — d'où [_override] pour ne pas recompiler.
-  static const String _dev = 'http://192.168.1.155:8000';
+  static const String _dev = 'http://192.168.169.157:8000';
 
   /// Serveur de production, à rétablir comme défaut une fois l'intégration
   /// validée.

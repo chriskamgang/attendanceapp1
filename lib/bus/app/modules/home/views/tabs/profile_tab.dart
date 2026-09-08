@@ -309,33 +309,52 @@ class _SignOutButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 15),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(Brutal.radius),
-          border: Border.all(color: AppColors.ink, width: 2.5),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.logout_rounded, size: 19),
-            const SizedBox(width: 8),
-            Text(
-              'Se déconnecter',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontSize: 15,
-                fontWeight: FontWeight.w900,
+    final controller = Get.find<HomeController>();
+
+    return Obx(() {
+      final enCours = controller.signingOut.value;
+
+      return GestureDetector(
+        onTap: enCours ? null : onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 15),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            // Le bouton grisé pendant l'appel : sans ce retrait, seul le
+            // libellé changeait et la carte semblait encore pressable.
+            color: enCours ? AppColors.blueSoft : AppColors.white,
+            borderRadius: BorderRadius.circular(Brutal.radius),
+            border: Border.all(color: AppColors.ink, width: 2.5),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (enCours)
+                const SizedBox(
+                  height: 17,
+                  width: 17,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.2,
+                    color: AppColors.ink,
+                  ),
+                )
+              else
+                const Icon(Icons.logout_rounded, size: 19),
+              const SizedBox(width: 8),
+              Text(
+                enCours ? 'Déconnexion…' : 'Se déconnecter',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  color: enCours ? AppColors.inkMuted : AppColors.ink,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 }
 

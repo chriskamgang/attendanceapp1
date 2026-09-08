@@ -1,7 +1,9 @@
 import 'package:get/get.dart';
 
 import '../../../data/services/api_client.dart';
+import '../../../data/services/location_service.dart';
 import '../../../data/services/notification_service.dart';
+import '../../../data/services/presence_service.dart';
 import '../../../data/services/osm_service.dart';
 import '../../../data/services/realtime_service.dart';
 import '../../../data/services/student_service.dart';
@@ -34,6 +36,20 @@ class HomeBinding extends Bindings {
         StudentService(
           api: Get.find<ApiClient>(),
           realtime: Get.find<RealtimeService>(),
+        ),
+        permanent: true,
+      );
+    }
+    // Le pointage de présence a besoin du GPS : le même service que celui
+    // du chauffeur, enregistré ici car l'étudiant n'ouvre pas son écran.
+    if (!Get.isRegistered<LocationService>()) {
+      Get.put<LocationService>(LocationService(), permanent: true);
+    }
+    if (!Get.isRegistered<PresenceService>()) {
+      Get.put<PresenceService>(
+        PresenceService(
+          api: Get.find<ApiClient>(),
+          location: Get.find<LocationService>(),
         ),
         permanent: true,
       );

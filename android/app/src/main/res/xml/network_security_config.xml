@@ -13,7 +13,7 @@
 
     <domain-config cleartextTrafficPermitted="true">
         <!-- Poste de développement sur le réseau local. -->
-        <domain includeSubdomains="false">192.168.1.155</domain>
+        <domain includeSubdomains="false">192.168.3.237</domain>
 
         <!-- Émulateur Android : l'hôte s'y atteint par cette adresse. -->
         <domain includeSubdomains="false">10.0.2.2</domain>

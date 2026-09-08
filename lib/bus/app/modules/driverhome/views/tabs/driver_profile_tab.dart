@@ -339,11 +339,15 @@ class _Actions extends GetView<DriverhomeController> {
           onTap: () => SwitchSpaceButton.demander(context),
         ),
         const SizedBox(height: 10),
-        _ActionRow(
-          icon: Icons.logout_rounded,
-          label: 'Se déconnecter',
-          onTap: controller.signOut,
-          danger: true,
+        Obx(
+          () => _ActionRow(
+            icon: Icons.logout_rounded,
+            label: 'Se déconnecter',
+            labelEnCours: 'Déconnexion…',
+            enCours: controller.signingOut.value,
+            onTap: controller.signOut,
+            danger: true,
+          ),
         ),
         const SizedBox(height: 10),
         // Exigee par l'App Store des lors que l'application ouvre des
@@ -419,6 +423,8 @@ class _ActionRow extends StatelessWidget {
     required this.label,
     required this.onTap,
     this.danger = false,
+    this.enCours = false,
+    this.labelEnCours,
   });
 
   final IconData icon;
@@ -428,10 +434,16 @@ class _ActionRow extends StatelessWidget {
   /// Teinte d'accent pour la déconnexion, sans rouge : la palette n'en a pas.
   final bool danger;
 
+  /// Action en cours : la ligne prend un indicateur et cesse de répondre.
+  final bool enCours;
+
+  /// Libellé porté pendant l'attente ; [label] sinon.
+  final String? labelEnCours;
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: enCours ? null : onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.all(15),
@@ -442,19 +454,34 @@ class _ActionRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, size: 21, color: AppColors.ink),
+            if (enCours)
+              const SizedBox(
+                width: 21,
+                height: 21,
+                child: Padding(
+                  padding: EdgeInsets.all(2),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.2,
+                    color: AppColors.ink,
+                  ),
+                ),
+              )
+            else
+              Icon(icon, size: 21, color: AppColors.ink),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                label,
-                style: const TextStyle(
+                enCours ? (labelEnCours ?? label) : label,
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w900,
-                  color: AppColors.ink,
+                  color: enCours ? AppColors.inkMuted : AppColors.ink,
                 ),
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, size: 24),
+            // Le chevron s'efface pendant l'attente : il promettrait une
+            // ligne encore pressable.
+            if (!enCours) const Icon(Icons.chevron_right_rounded, size: 24),
           ],
         ),
       ),

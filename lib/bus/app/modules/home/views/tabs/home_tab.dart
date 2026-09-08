@@ -9,6 +9,7 @@ import '../../../../data/models/bus_tracking.dart';
 import '../../../../data/models/student_pass.dart';
 import '../../controllers/home_controller.dart';
 import '../widgets/payment_sheet.dart';
+import '../widgets/presence_card.dart';
 
 /// Accueil : l'ETA du bus d'abord, puis le pass et les raccourcis.
 class HomeTab extends GetView<HomeController> {
@@ -28,6 +29,10 @@ class HomeTab extends GetView<HomeController> {
             children: [
               _Greeting(),
               SizedBox(height: 18),
+              // Le pointage passe devant le transport : c'est le geste que
+              // l'étudiant doit faire en arrivant, et il a une heure.
+              PresenceCard(),
+              SizedBox(height: 16),
               _EtaCard(),
               SizedBox(height: 16),
               _PassStrip(),

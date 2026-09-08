@@ -176,7 +176,7 @@ await localNotifications.show(id: …, title: …, body: …, notificationDetail
 
 ### 6.3 Adresse du serveur local
 
-`lib/utils/constants.dart` pointe sur `http://192.168.1.155:8000/api`
+`lib/utils/constants.dart` pointe sur `http://192.168.3.237:8000/api`
 (`isLocal = true`). Cette IP change avec le réseau ; elle doit être répétée
 à trois endroits :
 

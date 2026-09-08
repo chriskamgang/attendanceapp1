@@ -1,0 +1,11 @@
+php artisan serve --host 0.0.0.0 --port 8001
+php artisan schedule:work
+php artisan reverb:start
+php artisan queue:work --queue=deposits,withdrawals,default
+
+php artisan cache:clear
+php artisan view:clear
+php artisan route:clear
+php artisan config:clear
+php artisan config:cache
+php artisan route:cache

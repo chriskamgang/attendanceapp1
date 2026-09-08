@@ -6,6 +6,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../data/models/app_user.dart';
 import '../../../data/models/bus_tracking.dart';
 import '../../../data/services/api_exception.dart';
+import '../../../data/services/presence_service.dart';
 import '../../../data/services/session_service.dart';
 import '../../../data/services/student_service.dart';
 import '../../../routes/app_pages.dart';
@@ -64,6 +65,8 @@ class HomeController extends GetxController {
   Future<void> reload() async {
     await Future.wait([
       student.refreshAll(),
+      if (Get.isRegistered<PresenceService>())
+        Get.find<PresenceService>().rafraichir(),
       if (Get.isRegistered<ScolariteController>())
         Get.find<ScolariteController>().rafraichir(),
     ]);
@@ -84,9 +87,27 @@ class HomeController extends GetxController {
   /// ligne, token déjà expiré — sans que cela retienne l'utilisateur :
   /// la session locale disparaît dans tous les cas.
   Future<void> signOut() async {
-    await session.signOut();
-    Get.offAllNamed(Routes.WELCOMER);
+    if (signingOut.value) return;
+    signingOut.value = true;
+
+    try {
+      await session.signOut();
+      Get.offAllNamed(Routes.WELCOMER);
+    } finally {
+      // Le contrôleur peut avoir été démonté par le changement de route :
+      // remettre le drapeau ne sert qu'au cas où la session survit, mais
+      // le faire sans condition lèverait sur un Rx déjà disposé.
+      if (!isClosed) signingOut.value = false;
+    }
   }
+
+  /// Vrai pendant la déconnexion : l'écran remplace le libellé du bouton
+  /// par un indicateur et refuse un second appui.
+  ///
+  /// La révocation passe par le réseau — détachement du push, puis appel au
+  /// serveur : sans ce signal, le bouton restait muet plusieurs secondes et
+  /// l'utilisateur le pressait à nouveau, croyant l'avoir manqué.
+  final RxBool signingOut = false.obs;
 
   /// Vrai pendant l'appel de suppression : l'écran bloque le bouton pour
   /// qu'un second appui ne relance pas la requête.

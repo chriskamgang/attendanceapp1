@@ -477,9 +477,24 @@ class DriverhomeController extends GetxController {
   void declineMission(String id) => driver.declineMission(id);
 
   Future<void> signOut() async {
-    await session.signOut();
-    Get.offAllNamed(Routes.WELCOMER);
+    if (signingOut.value) return;
+    signingOut.value = true;
+
+    try {
+      await session.signOut();
+      Get.offAllNamed(Routes.WELCOMER);
+    } finally {
+      // Le contrôleur peut avoir été démonté par le changement de route.
+      if (!isClosed) signingOut.value = false;
+    }
   }
+
+  /// Vrai pendant la déconnexion : l'écran remplace le libellé par un
+  /// indicateur et refuse un second appui.
+  ///
+  /// Elle est plus lente ici que côté étudiant : le bus quitte d'abord la
+  /// carte, puis l'appareil se détache du push, avant l'appel au serveur.
+  final RxBool signingOut = false.obs;
 
   /// Vrai pendant l'appel de suppression, pour bloquer un second appui.
   final RxBool deleting = false.obs;
