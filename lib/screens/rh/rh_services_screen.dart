@@ -15,7 +15,6 @@ import '../orgchart/orgchart_screen.dart';
 import '../training/training_screen.dart';
 import '../analytics/hr_analytics_screen.dart';
 import '../tickets/tickets_screen.dart';
-import '../bus/bus_home_screen.dart';
 
 class RhServicesScreen extends StatelessWidget {
   const RhServicesScreen({super.key});
@@ -116,20 +115,6 @@ class RhServicesScreen extends StatelessWidget {
                 label: 'Analytique\nRH',
                 color: const Color(0xFFD84315),
                 onTap: () => _navigate(context, const HrAnalyticsScreen()),
-              ),
-            ]),
-
-            const SizedBox(height: 24),
-
-            // Section Transport
-            _buildSectionTitle('Transport'),
-            const SizedBox(height: 10),
-            _buildGrid(context, [
-              _ServiceItem(
-                icon: Icons.directions_bus_rounded,
-                label: 'Bus INSAM',
-                color: AppColors.blue,
-                onTap: () => _navigate(context, const BusHomeScreen()),
               ),
             ]),
 

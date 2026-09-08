@@ -90,7 +90,14 @@ class BrutalField extends StatelessWidget {
                   decoration: InputDecoration(
                     hintText: hint,
                     hintStyle: text.bodyMedium?.copyWith(fontSize: 15.5),
+                    // Le cadre est celui du Container qui entoure ce champ :
+                    // les contours du thème s'y ajouteraient en doublon.
+                    filled: false,
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(
                       horizontal: icon == null ? 16 : 12,

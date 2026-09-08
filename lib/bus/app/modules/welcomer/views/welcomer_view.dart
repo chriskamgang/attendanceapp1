@@ -43,13 +43,10 @@ class WelcomerView extends GetView<WelcomerController> {
                     const SizedBox(height: 26),
                     Text('Bienvenue à\nbord.', style: text.displayLarge),
                     const SizedBox(height: 10),
-                    Obx(
-                      () => Text(controller.intro, style: text.bodyLarge),
-                    ),
+                    Text(controller.intro, style: text.bodyLarge),
                     const SizedBox(height: 28),
-                    // Le champ suit la case : une adresse pour l'étudiant, un
-                    // numéro pour le chauffeur — c'est ainsi que le backend
-                    // les distingue.
+                    // Seul le message d'erreur varie ici : le champ attend
+                    // une adresse, l'écran n'accueillant que l'étudiant.
                     Obx(
                       () => BrutalField(
                         label: controller.label,
@@ -61,8 +58,6 @@ class WelcomerView extends GetView<WelcomerController> {
                         onSubmitted: (_) => controller.continuer(),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    const _DriverCheckbox(),
                     const SizedBox(height: 18),
                     Obx(
                       () => BrutalButton(
@@ -76,25 +71,15 @@ class WelcomerView extends GetView<WelcomerController> {
                             : controller.continuer,
                       ),
                     ),
-                    // Ni Google ni création de compte ne concernent le
-                    // chauffeur : son compte est ouvert par la régulation.
+                    // Le chauffeur se déclare au login du personnel, d'où
+                    // l'on vient : cet écran n'accueille plus que l'étudiant.
                     //
                     // Connexion Google retiree de la version 1.0 : l'App Store
                     // impose « Se connecter avec Apple » des qu'un fournisseur
                     // tiers est propose (guideline 4.8). A retablir avec Apple
                     // en meme temps.
-                    Obx(() {
-                      if (controller.estChauffeur.value) {
-                        return const SizedBox.shrink();
-                      }
-
-                      return const Column(
-                        children: [
-                          SizedBox(height: 26),
-                          _RegisterRow(),
-                        ],
-                      );
-                    }),
+                    const SizedBox(height: 26),
+                    const _RegisterRow(),
                   ],
                 ),
               ),
@@ -185,79 +170,6 @@ class _Rule extends StatelessWidget {
 /// Le chauffeur est inscrit par la régulation : il n'a ni code à recevoir
 /// ni compte à créer. La cocher bascule le champ sur son numéro et mène
 /// droit au mot de passe.
-/// Case « Je suis chauffeur ».
-///
-/// Le chauffeur est créé au back-office et s'identifie par son numéro, non
-/// par son adresse : il lui faut donc dire qui il est avant de saisir quoi
-/// que ce soit. L'étudiant, lui, ne la coche jamais.
-class _DriverCheckbox extends GetView<WelcomerController> {
-  const _DriverCheckbox();
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-
-    return Obx(() {
-      final coche = controller.estChauffeur.value;
-
-      return GestureDetector(
-        onTap: () => controller.toggleChauffeur(!coche),
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-          decoration: BoxDecoration(
-            color: coche ? AppColors.goldSoft : AppColors.white,
-            borderRadius: BorderRadius.circular(Brutal.radiusSmall),
-            border: Border.all(color: AppColors.ink, width: 2.5),
-            boxShadow: coche ? Brutal.shadow(const Offset(3, 3)) : null,
-          ),
-          child: Row(
-            children: [
-              // Case dessinée à la main : la Checkbox de Material jure avec
-              // le reste des bordures épaisses.
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                width: 24,
-                height: 24,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: coche ? AppColors.blue : AppColors.white,
-                  borderRadius: BorderRadius.circular(5),
-                  border: Border.all(color: AppColors.ink, width: 2.5),
-                ),
-                child: coche
-                    ? const Icon(
-                        Icons.check_rounded,
-                        size: 16,
-                        color: AppColors.white,
-                      )
-                    : null,
-              ),
-              const SizedBox(width: 12),
-              const Icon(
-                Icons.directions_bus_filled_rounded,
-                size: 19,
-                color: AppColors.ink,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Je suis chauffeur',
-                  style: text.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.ink,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    });
-  }
-}
-
 class _RegisterRow extends GetView<WelcomerController> {
   const _RegisterRow();
 
