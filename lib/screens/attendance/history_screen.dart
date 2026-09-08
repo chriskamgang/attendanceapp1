@@ -98,15 +98,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final sortedDates = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
 
     return Scaffold(
-      appBar: AppBar(
-        // Onglet, non écran empilé : pas de flèche de retour.
-        automaticallyImplyLeading: false,
-        title: const Text('Historique'),
+      appBar: RhAppBar(
+        titre: 'Historique',
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadHistory,
-          ),
+          RhBarAction(icone: Icons.refresh_rounded, onTap: _loadHistory),
         ],
       ),
       body: Column(
@@ -143,7 +138,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     decoration: BoxDecoration(
                       color: AppColors.white,
                       borderRadius: BorderRadius.circular(Brutal.radiusSmall),
-                      border: Border.all(color: AppColors.line),
+                      border: Border.all(color: AppColors.ink, width: Brutal.border),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,

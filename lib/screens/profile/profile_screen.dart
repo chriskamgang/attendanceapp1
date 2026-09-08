@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
@@ -388,11 +390,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [_primaryDark, _primaryMid, _primaryLight],
-            ),
+            color: _primaryDark,
           ),
           child: SafeArea(
             child: SingleChildScrollView(
@@ -443,16 +441,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           onTap: _pickAndUploadImage,
                           child: Container(
                             padding: const EdgeInsets.all(6),
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
+                            decoration: BoxDecoration(
+                              color: AppColors.white,
                               shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black12,
-                                  blurRadius: 4,
-                                  offset: Offset(0, 2),
-                                ),
-                              ],
+                              border: Border.all(
+                                color: AppColors.ink,
+                                width: 2,
+                              ),
                             ),
                             child: const Icon(Icons.camera_alt_rounded, size: 16, color: _primaryDark),
                           ),
@@ -512,13 +507,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.green.withValues(alpha: 0.15),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: Brutal.shadow(const Offset(3, 3)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -563,13 +552,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          boxShadow: Brutal.shadow(const Offset(3, 3)),
         ),
         child: Row(
           children: [
@@ -607,17 +590,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [_primaryDark, _primaryLight],
-          ),
+          color: _primaryDark,
           borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: _primaryDark.withValues(alpha: 0.25),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          boxShadow: Brutal.shadow(const Offset(3, 3)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -651,17 +626,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildWalletButton() {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1A237E), Color(0xFF283593)],
-        ),
+        color: Color(0xFF1A237E),
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF1A237E).withOpacity(0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        boxShadow: Brutal.shadow(const Offset(3, 3)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -682,6 +649,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.ink, width: Brutal.border),
                   ),
                   child: const Icon(Icons.account_balance_wallet, color: Colors.white, size: 22),
                 ),
@@ -718,17 +686,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildSalaryAdvanceButton() {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF00897B), Color(0xFF00695C)],
-        ),
+        color: Color(0xFF00897B),
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF00897B).withOpacity(0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        boxShadow: Brutal.shadow(const Offset(3, 3)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -749,6 +709,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.ink, width: Brutal.border),
                   ),
                   child: const Icon(Icons.money, color: Colors.white, size: 22),
                 ),
@@ -786,17 +747,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildTasksButton() {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF5C6BC0), Color(0xFF3949AB)],
-        ),
+        color: AppColors.blueDark,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF5C6BC0).withAlpha(76),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        boxShadow: Brutal.shadow(const Offset(3, 3)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -844,17 +797,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildAbsencesButton() {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFE53935), Color(0xFFC62828)],
-        ),
+        color: Color(0xFFE53935),
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFE53935).withAlpha(76),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        boxShadow: Brutal.shadow(const Offset(3, 3)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -901,17 +846,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildLeaveRequestButton() {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF5C6BC0), Color(0xFF3949AB)],
-        ),
+        color: AppColors.blueDark,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF5C6BC0).withOpacity(0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        boxShadow: Brutal.shadow(const Offset(3, 3)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -932,6 +869,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.ink, width: Brutal.border),
                   ),
                   child: const Icon(Icons.event_note, color: Colors.white, size: 22),
                 ),
@@ -958,9 +896,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildCertificatesButton() {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF00897B), Color(0xFF00695C)]),
+        color: Color(0xFF00897B),
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: const Color(0xFF00897B).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+        boxShadow: Brutal.shadow(const Offset(3, 3)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -999,9 +937,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildPayslipHistoryButton() {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF7B1FA2), Color(0xFF6A1B9A)]),
+        color: Color(0xFF7B1FA2),
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: const Color(0xFF7B1FA2).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+        boxShadow: Brutal.shadow(const Offset(3, 3)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -1040,9 +978,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildMessagingButton() {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF0277BD), Color(0xFF01579B)]),
+        color: Color(0xFF0277BD),
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: const Color(0xFF0277BD).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+        boxShadow: Brutal.shadow(const Offset(3, 3)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -1081,9 +1019,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildEvaluationsButton() {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF283593), Color(0xFF1A237E)]),
+        color: Color(0xFF283593),
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: const Color(0xFF283593).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+        boxShadow: Brutal.shadow(const Offset(3, 3)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -1122,9 +1060,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildCnpsButton() {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF2E7D32), Color(0xFF1B5E20)]),
+        color: Color(0xFF2E7D32),
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: const Color(0xFF2E7D32).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+        boxShadow: Brutal.shadow(const Offset(3, 3)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -1163,9 +1101,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildOrgChartButton() {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF6A1B9A), Color(0xFF4A148C)]),
+        color: Color(0xFF6A1B9A),
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: const Color(0xFF6A1B9A).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+        boxShadow: Brutal.shadow(const Offset(3, 3)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -1204,9 +1142,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildOnboardingButton() {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF00796B), Color(0xFF00695C)]),
+        color: Color(0xFF00796B),
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: const Color(0xFF00796B).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+        boxShadow: Brutal.shadow(const Offset(3, 3)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -1245,9 +1183,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildRecruitmentButton() {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFFE65100), Color(0xFFBF360C)]),
+        color: Color(0xFFE65100),
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: const Color(0xFFE65100).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+        boxShadow: Brutal.shadow(const Offset(3, 3)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -1286,9 +1224,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildTrainingButton() {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF1565C0), Color(0xFF0D47A1)]),
+        color: Color(0xFF1565C0),
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: const Color(0xFF1565C0).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+        boxShadow: Brutal.shadow(const Offset(3, 3)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -1327,9 +1265,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildAnalyticsButton() {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF455A64), Color(0xFF37474F)]),
+        color: Color(0xFF455A64),
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: const Color(0xFF455A64).withAlpha(76), blurRadius: 8, offset: const Offset(0, 3))],
+        boxShadow: Brutal.shadow(const Offset(3, 3)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -1802,13 +1740,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: Brutal.shadow(const Offset(3, 3)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(18),
@@ -2131,13 +2063,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: AppColors.ink, width: Brutal.border),
+        boxShadow: Brutal.shadow(const Offset(3, 3)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -2208,13 +2135,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: AppColors.ink, width: Brutal.border),
+        boxShadow: Brutal.shadow(const Offset(3, 3)),
       ),
       child: Column(
         children: children,

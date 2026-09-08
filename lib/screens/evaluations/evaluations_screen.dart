@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import '../../services/api_service.dart';
 
 class EvaluationsScreen extends StatefulWidget {
@@ -62,10 +64,9 @@ class _EvaluationsScreenState extends State<EvaluationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mes Evaluations'),
-        backgroundColor: const Color(0xFF1A237E),
-        foregroundColor: Colors.white,
+      appBar: RhAppBar(
+        titre: 'Mes Evaluations',
+        retour: () => Navigator.of(context).pop(),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -113,7 +114,7 @@ class _EvaluationsScreenState extends State<EvaluationsScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: _statusColor(status).withAlpha(30),
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(Brutal.radius),
                     ),
                     child: Text(
                       _statusLabel(status),
@@ -172,7 +173,7 @@ class _EvaluationsScreenState extends State<EvaluationsScreen> {
                     icon: const Icon(Icons.edit, size: 16),
                     label: const Text('Faire mon auto-evaluation'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1A237E),
+                      backgroundColor: AppColors.blueDark,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
@@ -279,7 +280,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_evaluation?['campaign']?['title'] ?? 'Evaluation'),
-        backgroundColor: const Color(0xFF1A237E),
+        backgroundColor: AppColors.blueDark,
         foregroundColor: Colors.white,
       ),
       body: _isLoading
@@ -320,7 +321,6 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
                       maxLines: 3,
                       decoration: InputDecoration(
                         labelText: 'Commentaires (optionnel)',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -330,7 +330,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
                       child: ElevatedButton(
                         onPressed: _isSubmitting ? null : _submitSelfEvaluation,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1A237E),
+                          backgroundColor: AppColors.blueDark,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),

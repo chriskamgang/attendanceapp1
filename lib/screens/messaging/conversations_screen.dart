@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import 'chat_screen.dart';
@@ -36,10 +38,9 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Messages'),
-        backgroundColor: const Color(0xFF1A237E),
-        foregroundColor: Colors.white,
+      appBar: RhAppBar(
+        titre: 'Messages',
+        retour: () => Navigator.of(context).pop(),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
@@ -49,7 +50,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
           );
           if (created == true) _loadData();
         },
-        backgroundColor: const Color(0xFF1A237E),
+        backgroundColor: AppColors.blueDark,
         foregroundColor: Colors.white,
         child: const Icon(Icons.edit),
       ),
@@ -85,14 +86,14 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
 
                       return ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: const Color(0xFF1A237E).withAlpha(25),
+                          backgroundColor: AppColors.blueDark.withAlpha(25),
                           backgroundImage: photo != null
                               ? NetworkImage('${ApiConstants.baseUrl.replaceAll('/api', '')}/storage/$photo')
                               : null,
                           child: photo == null
                               ? Text(
                                   displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-                                  style: const TextStyle(color: Color(0xFF1A237E), fontWeight: FontWeight.bold),
+                                  style: const TextStyle(color: AppColors.blueDark, fontWeight: FontWeight.bold),
                                 )
                               : null,
                         ),
@@ -131,7 +132,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                             ? Container(
                                 padding: const EdgeInsets.all(6),
                                 decoration: const BoxDecoration(
-                                  color: Color(0xFF1A237E),
+                                  color: AppColors.blueDark,
                                   shape: BoxShape.circle,
                                 ),
                                 child: Text(

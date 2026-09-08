@@ -30,9 +30,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  /// Case « Je suis un étudiant » : le backend distingue les deux publics
-  /// à la connexion, l'étudiant n'ayant pas de compte de pointage.
-  bool _isStudent = false;
 
   bool _motDePasseMasque = true;
   bool _enCours = false;
@@ -79,7 +76,6 @@ class _LoginScreenState extends State<LoginScreen> {
     final resultat = await authProvider.login(
       _emailController.text.trim(),
       _passwordController.text,
-      isStudent: _isStudent,
     );
 
     if (!mounted) return;
@@ -281,17 +277,9 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Les deux publics qui ne pointent pas : l'étudiant garde le
-            // même formulaire, le chauffeur bascule sur son numéro.
-            if (!_estChauffeur) ...[
-              _CaseRole(
-                coche: _isStudent,
-                icone: Icons.school_rounded,
-                libelle: 'Je suis un étudiant',
-                onChange: (v) => setState(() => _isStudent = v),
-              ),
-              const SizedBox(height: 10),
-            ],
+            // L'étudiant a sa propre porte, juste sous ce formulaire : une
+            // case de plus ici ferait doublon. Seul le chauffeur se
+            // déclare, son identifiant n'étant pas une adresse.
             _CaseRole(
               coche: _estChauffeur,
               icone: Icons.directions_bus_filled_rounded,
@@ -302,6 +290,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
             BrutalButton(
               label: _enCours ? 'CONNEXION…' : 'SE CONNECTER',
+              // Le bleu des bandeaux et de l'onglet actif : le rouge par
+              // défaut était la seule note vive de l'écran.
+              color: AppColors.blueDark,
               icon: _enCours ? null : Icons.arrow_forward_rounded,
               iconTrailing: true,
               // Le bouton reste affiché mais inerte pendant l'appel : le

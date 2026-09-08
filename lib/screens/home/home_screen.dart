@@ -460,12 +460,8 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(Brutal.radius),
-        boxShadow: [
-          BoxShadow(
-            color: (hasActive ? AppColors.success : AppColors.warning).withValues(alpha: 0.15),
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: AppColors.ink, width: Brutal.border),
+        boxShadow: Brutal.shadow(const Offset(3, 3)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),

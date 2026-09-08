@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import '../../services/api_service.dart';
 
 class OrgChartScreen extends StatefulWidget {
@@ -139,7 +141,7 @@ class _OrgChartScreenState extends State<OrgChartScreen> with SingleTickerProvid
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(color: Colors.purple[50], borderRadius: BorderRadius.circular(20)),
+                decoration: BoxDecoration(color: Colors.purple[50], borderRadius: BorderRadius.circular(Brutal.radius)),
                 child: Text(
                   '${dept['employee_count'] ?? 0}',
                   style: TextStyle(fontWeight: FontWeight.bold, color: Colors.purple[700], fontSize: 13),

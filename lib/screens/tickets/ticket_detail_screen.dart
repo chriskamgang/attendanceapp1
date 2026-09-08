@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import '../../services/api_service.dart';
 import 'package:intl/intl.dart';
 
@@ -109,7 +111,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(_ticket['ticket_number'] ?? 'Ticket'),
-          backgroundColor: const Color(0xFF0D47A1),
+          backgroundColor: AppColors.blueDark,
           foregroundColor: Colors.white,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
@@ -308,7 +310,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                         decoration: InputDecoration(
                           hintText: 'Ajouter un commentaire...',
                           hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide(color: Colors.grey[300]!)),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(Brutal.radius), borderSide: BorderSide(color: Colors.grey[300]!)),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         ),
                         maxLines: 1,
@@ -316,7 +318,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                     ),
                     const SizedBox(width: 8),
                     CircleAvatar(
-                      backgroundColor: const Color(0xFF0D47A1),
+                      backgroundColor: AppColors.blueDark,
                       child: _isSending
                           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                           : IconButton(

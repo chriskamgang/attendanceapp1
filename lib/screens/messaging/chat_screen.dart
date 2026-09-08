@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import '../../services/api_service.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -89,7 +91,7 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title, style: const TextStyle(fontSize: 16)),
-        backgroundColor: const Color(0xFF1A237E),
+        backgroundColor: AppColors.blueDark,
         foregroundColor: Colors.white,
       ),
       body: Column(
@@ -124,7 +126,7 @@ class _ChatScreenState extends State<ChatScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
         decoration: BoxDecoration(
-          color: isMine ? const Color(0xFF1A237E) : Colors.grey[200],
+          color: isMine ? AppColors.blueDark : Colors.grey[200],
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
@@ -176,7 +178,7 @@ class _ChatScreenState extends State<ChatScreen> {
               onSubmitted: (_) => _sendMessage(),
               decoration: InputDecoration(
                 hintText: 'Votre message...',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(Brutal.radius), borderSide: BorderSide.none),
                 filled: true,
                 fillColor: Colors.grey[100],
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -188,7 +190,7 @@ class _ChatScreenState extends State<ChatScreen> {
             onPressed: _isSending ? null : _sendMessage,
             icon: _isSending
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.send_rounded, color: Color(0xFF1A237E)),
+                : const Icon(Icons.send_rounded, color: AppColors.blueDark),
           ),
         ],
       ),

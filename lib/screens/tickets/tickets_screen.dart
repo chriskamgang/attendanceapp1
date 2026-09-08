@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import '../../services/api_service.dart';
 import 'create_ticket_screen.dart';
 import 'ticket_detail_screen.dart';
@@ -45,11 +47,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mes Tickets'),
-        backgroundColor: const Color(0xFF0D47A1),
-        foregroundColor: Colors.white,
-      ),
+      appBar: const RhAppBar(titre: 'Mes Tickets'),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _tickets.isEmpty
@@ -70,7 +68,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
           );
           if (result == true) _loadTickets();
         },
-        backgroundColor: const Color(0xFF0D47A1),
+        backgroundColor: AppColors.blueDark,
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
@@ -104,7 +102,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
             icon: const Icon(Icons.add),
             label: const Text('NOUVEAU TICKET'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0D47A1),
+              backgroundColor: AppColors.blueDark,
               foregroundColor: Colors.white,
             ),
           ),
@@ -134,7 +132,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 2,
+      elevation: 0,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () async {

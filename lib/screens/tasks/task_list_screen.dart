@@ -143,7 +143,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Brutal.radius)),
         title: const Row(
           children: [
             Icon(Icons.monetization_on, color: Colors.orange, size: 28),
@@ -174,9 +174,6 @@ class _TaskListScreenState extends State<TaskListScreen> {
                   labelText: 'Montant (FCFA)',
                   hintText: 'Ex: 5000',
                   prefixIcon: const Icon(Icons.payments_outlined),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
                   filled: true,
                   fillColor: Colors.grey[50],
                 ),
@@ -629,7 +626,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Card(
-        elevation: 1,
+        elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Brutal.radius)),
         child: InkWell(
           onTap: () => _showTaskDetail(task),

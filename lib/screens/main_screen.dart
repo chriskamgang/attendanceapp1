@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../shared/rh_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../bus/app/core/widgets/brutal_bottom_nav.dart';
@@ -126,7 +128,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF1565C0), Color(0xFF0D47A1)],
+            colors: [AppColors.blue, AppColors.blueDark],
           ),
         ),
         child: SafeArea(
@@ -155,7 +157,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 label: const Text('Deverrouiller', style: TextStyle(fontSize: 16)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFF0D47A1),
+                  foregroundColor: AppColors.blueDark,
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import '../../services/api_service.dart';
 
 class CreateComplaintScreen extends StatefulWidget {
@@ -62,10 +64,9 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Soumettre une Plainte'),
-        backgroundColor: const Color(0xFF1A237E),
-        foregroundColor: Colors.white,
+      appBar: RhAppBar(
+        titre: 'Soumettre une Plainte',
+        retour: () => Navigator.of(context).pop(),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -81,7 +82,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF1A237E),
+                        color: AppColors.blueDark,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -117,7 +118,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                       child: ElevatedButton(
                         onPressed: _submit,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1A237E),
+                          backgroundColor: AppColors.blueDark,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),

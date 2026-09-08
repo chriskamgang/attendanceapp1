@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../services/api_service.dart';
@@ -19,8 +21,8 @@ class _WalletScreenState extends State<WalletScreen> {
   bool _hasMorePages = true;
   bool _isLoadingMore = false;
 
-  static const Color _primaryDark = Color(0xFF1A237E);
-  static const Color _primaryMid = Color(0xFF283593);
+  static const Color _primaryDark = AppColors.blueDark;
+  static const Color _primaryMid = AppColors.blueDark;
   static const Color _accentBlue = Color(0xFF42A5F5);
 
   @override
@@ -199,9 +201,6 @@ class _WalletScreenState extends State<WalletScreen> {
                         color: _primaryDark,
                         fontWeight: FontWeight.bold,
                       ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(color: _primaryDark, width: 2),
@@ -227,9 +226,6 @@ class _WalletScreenState extends State<WalletScreen> {
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     decoration: InputDecoration(
                       labelText: 'Montant (FCFA)',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(color: _primaryDark, width: 2),
@@ -367,7 +363,7 @@ class _WalletScreenState extends State<WalletScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        elevation: 2,
+                        elevation: 0,
                       ),
                       child: isSubmitting
                           ? const SizedBox(
@@ -399,7 +395,7 @@ class _WalletScreenState extends State<WalletScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
           'Mon Portefeuille',
@@ -480,14 +476,9 @@ class _WalletScreenState extends State<WalletScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: _primaryDark.withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(Brutal.radius),
+        boxShadow: Brutal.shadow(const Offset(3, 3)),
+        border: Border.all(color: AppColors.ink, width: Brutal.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -499,6 +490,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.ink, width: Brutal.border),
                 ),
                 child: const Icon(
                   Icons.account_balance_wallet,
@@ -631,13 +623,8 @@ class _WalletScreenState extends State<WalletScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: Brutal.shadow(const Offset(3, 3)),
+        border: Border.all(color: AppColors.ink, width: Brutal.border),
       ),
       child: Row(
         children: [

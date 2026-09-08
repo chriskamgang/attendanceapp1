@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import '../../services/bus_service.dart';
 
 class BusSubscriptionsScreen extends StatefulWidget {
@@ -98,9 +100,7 @@ class _BusSubscriptionsScreenState extends State<BusSubscriptionsScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF43A047), Color(0xFF2E7D32)],
-        ),
+        color: Color(0xFF43A047),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(

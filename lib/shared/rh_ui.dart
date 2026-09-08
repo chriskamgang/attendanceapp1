@@ -394,3 +394,336 @@ class RhEmpty extends StatelessWidget {
     );
   }
 }
+
+/// Bandeau d'écran : le titre sur fond bleu, avec retour facultatif.
+///
+/// Il remplace l'`AppBar` de Material sur les écrans RH : celle-ci pose une
+/// élévation floue et une flèche automatique qui jurent avec le reste.
+class RhAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const RhAppBar({
+    super.key,
+    required this.titre,
+    this.sousTitre,
+    this.actions,
+    this.retour,
+  });
+
+  final String titre;
+  final String? sousTitre;
+  final List<Widget>? actions;
+
+  /// `null` sur un onglet — il n'y a nulle part où revenir.
+  final VoidCallback? retour;
+
+  @override
+  Size get preferredSize => Size.fromHeight(sousTitre == null ? 62 : 82);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.blueDark,
+        border: Border(
+          bottom: BorderSide(color: AppColors.ink, width: Brutal.borderThick),
+        ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
+          child: Row(
+            children: [
+              if (retour != null) ...[
+                _CarreAction(
+                  icone: Icons.arrow_back_rounded,
+                  onTap: retour!,
+                  clair: true,
+                ),
+                const SizedBox(width: 12),
+              ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      titre,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 21,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
+                        color: AppColors.white,
+                      ),
+                    ),
+                    if (sousTitre != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        sousTitre!,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: AppColors.white.withValues(alpha: 0.75),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (actions != null) ...actions!,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Bouton carré encadré, pour les actions d'un bandeau.
+class _CarreAction extends StatelessWidget {
+  const _CarreAction({
+    required this.icone,
+    required this.onTap,
+    this.clair = false,
+  });
+
+  final IconData icone;
+  final VoidCallback onTap;
+
+  /// Posé sur fond sombre : le carré s'éclaircit au lieu de s'assombrir.
+  final bool clair;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: 40,
+        height: 40,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: clair
+              ? AppColors.white.withValues(alpha: 0.16)
+              : AppColors.white,
+          borderRadius: BorderRadius.circular(Brutal.radiusSmall),
+          border: Border.all(
+            color: clair ? AppColors.white : AppColors.ink,
+            width: 2,
+          ),
+        ),
+        child: Icon(
+          icone,
+          size: 20,
+          color: clair ? AppColors.white : AppColors.ink,
+        ),
+      ),
+    );
+  }
+}
+
+/// Action d'un bandeau RH, exposée aux écrans.
+class RhBarAction extends StatelessWidget {
+  const RhBarAction({super.key, required this.icone, required this.onTap});
+
+  final IconData icone;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(left: 8),
+    child: _CarreAction(icone: icone, onTap: onTap, clair: true),
+  );
+}
+
+/// Carte encadrée : le contenant de base d'un écran RH.
+class RhCard extends StatelessWidget {
+  const RhCard({
+    super.key,
+    required this.child,
+    this.couleur = AppColors.white,
+    this.padding = const EdgeInsets.all(16),
+    this.onTap,
+  });
+
+  final Widget child;
+  final Color couleur;
+  final EdgeInsets padding;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final boite = Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: couleur,
+        borderRadius: BorderRadius.circular(Brutal.radius),
+        border: Border.all(color: AppColors.ink, width: Brutal.border),
+        boxShadow: Brutal.shadow(const Offset(3, 3)),
+      ),
+      child: child,
+    );
+
+    if (onTap == null) return boite;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(Brutal.radius),
+        onTap: onTap,
+        child: boite,
+      ),
+    );
+  }
+}
+
+/// Tuile carrée d'une grille de services : icône colorée, libellé dessous.
+class RhServiceTile extends StatelessWidget {
+  const RhServiceTile({
+    super.key,
+    required this.titre,
+    required this.icone,
+    required this.accent,
+    required this.onTap,
+  });
+
+  final String titre;
+  final IconData icone;
+  final Color accent;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(Brutal.radius),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(Brutal.radius),
+            border: Border.all(color: AppColors.ink, width: Brutal.border),
+            boxShadow: Brutal.shadow(const Offset(3, 3)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: accent,
+                  borderRadius: BorderRadius.circular(Brutal.radiusSmall),
+                  border: Border.all(color: AppColors.ink, width: 2),
+                ),
+                child: Icon(icone, size: 21, color: AppColors.white),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                titre,
+                style: const TextStyle(
+                  fontSize: 14,
+                  height: 1.2,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.ink,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Champ de saisie encadré, au langage des deux espaces.
+class RhField extends StatelessWidget {
+  const RhField({
+    super.key,
+    required this.controller,
+    required this.label,
+    this.hint,
+    this.icone,
+    this.lignes = 1,
+    this.clavier,
+    this.masque = false,
+    this.suffixe,
+    this.validation,
+    this.onChanged,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final String? hint;
+  final IconData? icone;
+  final int lignes;
+  final TextInputType? clavier;
+  final bool masque;
+  final Widget? suffixe;
+  final String? Function(String?)? validation;
+  final ValueChanged<String>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    OutlineInputBorder bord(Color couleur, double epaisseur) =>
+        OutlineInputBorder(
+          borderRadius: BorderRadius.circular(Brutal.radiusSmall),
+          borderSide: BorderSide(color: couleur, width: epaisseur),
+        );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.5,
+            color: AppColors.inkMuted,
+          ),
+        ),
+        const SizedBox(height: 7),
+        TextFormField(
+          controller: controller,
+          obscureText: masque,
+          keyboardType: clavier,
+          maxLines: masque ? 1 : lignes,
+          validator: validation,
+          onChanged: onChanged,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: AppColors.ink,
+          ),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(
+              color: AppColors.inkMuted,
+              fontWeight: FontWeight.w500,
+            ),
+            prefixIcon: icone == null
+                ? null
+                : Icon(icone, size: 20, color: AppColors.blueDark),
+            suffixIcon: suffixe,
+            filled: true,
+            fillColor: AppColors.white,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 14,
+            ),
+            border: bord(AppColors.ink, Brutal.border),
+            enabledBorder: bord(AppColors.ink, Brutal.border),
+            focusedBorder: bord(AppColors.blue, Brutal.borderThick),
+            errorBorder: bord(AppColors.danger, Brutal.border),
+            focusedErrorBorder: bord(AppColors.danger, Brutal.borderThick),
+          ),
+        ),
+      ],
+    );
+  }
+}

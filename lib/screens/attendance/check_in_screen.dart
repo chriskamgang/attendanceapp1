@@ -265,6 +265,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
                       decoration: BoxDecoration(
                         color: AppColors.success,
                         borderRadius: BorderRadius.circular(Brutal.radius),
+                        border: Border.all(color: AppColors.ink, width: Brutal.border),
                       ),
                       child: Row(
                         children: [

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import 'chat_screen.dart';
@@ -119,10 +121,9 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nouveau message'),
-        backgroundColor: const Color(0xFF1A237E),
-        foregroundColor: Colors.white,
+      appBar: RhAppBar(
+        titre: 'Nouveau message',
+        retour: () => Navigator.of(context).pop(),
       ),
       body: Column(
         children: [
@@ -134,7 +135,6 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
               decoration: InputDecoration(
                 hintText: 'Rechercher un contact...',
                 prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 filled: true,
                 fillColor: Colors.grey[100],
               ),
@@ -153,14 +153,14 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
 
                           return ListTile(
                             leading: CircleAvatar(
-                              backgroundColor: const Color(0xFF1A237E).withAlpha(25),
+                              backgroundColor: AppColors.blueDark.withAlpha(25),
                               backgroundImage: photo != null
                                   ? NetworkImage('${ApiConstants.baseUrl.replaceAll('/api', '')}/storage/$photo')
                                   : null,
                               child: photo == null
                                   ? Text(
                                       (contact['full_name'] ?? '?')[0].toUpperCase(),
-                                      style: const TextStyle(color: Color(0xFF1A237E), fontWeight: FontWeight.bold),
+                                      style: const TextStyle(color: AppColors.blueDark, fontWeight: FontWeight.bold),
                                     )
                                   : null,
                             ),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import '../../services/api_service.dart';
 
 class CnpsScreen extends StatefulWidget {
@@ -121,8 +123,9 @@ class _CnpsScreenState extends State<CnpsScreen> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [Color(0xFF2E7D32), Color(0xFF1B5E20)]),
+          color: Color(0xFF2E7D32),
           borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.ink, width: Brutal.border),
         ),
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -194,7 +197,7 @@ class _CnpsScreenState extends State<CnpsScreen> {
             _totalRow('Part employee', _totals!['employee'], Colors.blue),
             _totalRow('Part employeur', _totals!['employer'], Colors.green),
             const Divider(),
-            _totalRow('Total cotisations', _totals!['total'], const Color(0xFF1A237E)),
+            _totalRow('Total cotisations', _totals!['total'], AppColors.blueDark),
           ],
         ),
       ),
@@ -258,7 +261,7 @@ class _CnpsScreenState extends State<CnpsScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: isPaid ? Colors.green[50] : Colors.orange[50],
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(Brutal.radius),
                   ),
                   child: Text(
                     isPaid ? 'Paye' : 'En attente',

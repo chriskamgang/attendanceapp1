@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/auth_provider.dart';
@@ -22,9 +24,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   Map<String, dynamic>? _dashboardData;
   List<Map<String, dynamic>> _todaySchedule = [];
 
-  static const Color _primaryDark = Color(0xFF0D47A1);
-  static const Color _accentBlue = Color(0xFF1976D2);
-  static const Color _surfaceGrey = Color(0xFFF5F7FA);
+  static const Color _primaryDark = AppColors.blueDark;
+  static const Color _accentBlue = AppColors.blue;
+  static const Color _surfaceGrey = AppColors.background;
 
   @override
   void initState() {
@@ -178,14 +180,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(Brutal.radius),
+        boxShadow: Brutal.shadow(const Offset(3, 3)),
+        border: Border.all(color: AppColors.ink, width: Brutal.border),
       ),
       child: Column(
         children: [
@@ -415,13 +412,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: Brutal.shadow(const Offset(3, 3)),
+        border: Border.all(color: AppColors.ink, width: Brutal.border),
       ),
       child: ListTile(
         leading: Container(
@@ -457,7 +449,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Brutal.radius),
         border: Border.all(color: Colors.grey.withOpacity(0.1)),
       ),
       child: Column(

@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import '../../services/bus_service.dart';
 
 class BusQrPassScreen extends StatefulWidget {
@@ -73,10 +75,9 @@ class _BusQrPassScreenState extends State<BusQrPassScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('QR Pass'),
-        backgroundColor: const Color(0xFF1565C0),
-        foregroundColor: Colors.white,
+      appBar: RhAppBar(
+        titre: 'QR Pass',
+        retour: () => Navigator.of(context).pop(),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -106,7 +107,7 @@ class _BusQrPassScreenState extends State<BusQrPassScreen> {
               icon: const Icon(Icons.refresh),
               label: const Text('Reessayer'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1565C0),
+                backgroundColor: AppColors.blue,
                 foregroundColor: Colors.white,
               ),
             ),
@@ -127,7 +128,7 @@ class _BusQrPassScreenState extends State<BusQrPassScreen> {
           const SizedBox(height: 16),
           const Text(
             'Presentez ce QR code au chauffeur',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF1A237E)),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.blueDark),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
@@ -139,8 +140,8 @@ class _BusQrPassScreenState extends State<BusQrPassScreen> {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFF1565C0), width: 3),
+              borderRadius: BorderRadius.circular(Brutal.radius),
+              border: Border.all(color: AppColors.blue, width: 3),
               boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.1), blurRadius: 20, spreadRadius: 5)],
             ),
             child: Center(
@@ -201,7 +202,7 @@ class _BusQrPassScreenState extends State<BusQrPassScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.card_membership, color: Color(0xFF1565C0), size: 20),
+                  const Icon(Icons.card_membership, color: AppColors.blue, size: 20),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import '../../services/api_service.dart';
 import 'package:intl/intl.dart';
 
@@ -98,7 +100,6 @@ class _MoratoireScreenState extends State<MoratoireScreen> {
               maxLines: 4,
               decoration: InputDecoration(
                 hintText: 'Décrivez votre situation (motivation)...',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 filled: true,
                 fillColor: Colors.grey[50],
               ),
@@ -110,7 +111,7 @@ class _MoratoireScreenState extends State<MoratoireScreen> {
               child: ElevatedButton(
                 onPressed: _submitRequest,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0D47A1),
+                  backgroundColor: AppColors.blueDark,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
@@ -129,7 +130,7 @@ class _MoratoireScreenState extends State<MoratoireScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Moratoires'),
-        backgroundColor: const Color(0xFF0D47A1),
+        backgroundColor: AppColors.blueDark,
         foregroundColor: Colors.white,
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadMoratoriums),
@@ -142,7 +143,7 @@ class _MoratoireScreenState extends State<MoratoireScreen> {
               : _buildList(),
       floatingActionButton: FloatingActionButton(
         onPressed: _showRequestModal,
-        backgroundColor: const Color(0xFF0D47A1),
+        backgroundColor: AppColors.blueDark,
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import 'package:open_filex/open_filex.dart';
 import '../../services/api_service.dart';
 
@@ -119,16 +121,15 @@ class _CertificatesScreenState extends State<CertificatesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Attestations'),
-        backgroundColor: const Color(0xFF1A237E),
-        foregroundColor: Colors.white,
+      appBar: RhAppBar(
+        titre: 'Attestations',
+        retour: () => Navigator.of(context).pop(),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _requestCertificate,
         icon: const Icon(Icons.add),
         label: const Text('Demander'),
-        backgroundColor: const Color(0xFF1A237E),
+        backgroundColor: AppColors.blueDark,
         foregroundColor: Colors.white,
       ),
       body: _isLoading

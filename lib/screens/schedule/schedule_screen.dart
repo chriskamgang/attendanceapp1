@@ -193,6 +193,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     decoration: BoxDecoration(
                       color: AppColors.white.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(Brutal.radius),
+                      border: Border.all(color: AppColors.ink, width: Brutal.border),
                     ),
                     child: const Text(
                       "Aujourd'hui",

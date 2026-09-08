@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import '../../services/bus_service.dart';
 
 class BusRoutesScreen extends StatefulWidget {
@@ -52,10 +54,10 @@ class _BusRoutesScreenState extends State<BusRoutesScreen> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Reseau de Transport'),
-        backgroundColor: const Color(0xFF1565C0),
+        backgroundColor: AppColors.blue,
         foregroundColor: Colors.white,
         bottom: TabBar(
           controller: _tabController,

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import '../../services/api_service.dart';
 
 class SalaryAdvanceScreen extends StatefulWidget {
@@ -18,8 +20,8 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
   final _reasonController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  static const Color _primaryDark = Color(0xFF1A237E);
-  static const Color _primaryMid = Color(0xFF283593);
+  static const Color _primaryDark = AppColors.blueDark;
+  static const Color _primaryMid = AppColors.blueDark;
 
   @override
   void initState() {
@@ -129,7 +131,6 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
                   labelText: 'Montant (FCFA)',
                   hintText: 'Ex: 50000',
                   prefixIcon: const Icon(Icons.monetization_on),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 validator: (v) {
                   if (v == null || v.isEmpty) return 'Montant requis';
@@ -147,7 +148,6 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
                   labelText: 'Motif de la demande',
                   hintText: 'Expliquez la raison...',
                   prefixIcon: const Icon(Icons.description),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Motif requis';
@@ -231,11 +231,10 @@ class _SalaryAdvanceScreenState extends State<SalaryAdvanceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
-      appBar: AppBar(
-        title: const Text('Avance sur Salaire'),
-        backgroundColor: _primaryDark,
-        foregroundColor: Colors.white,
+      backgroundColor: AppColors.background,
+      appBar: RhAppBar(
+        titre: 'Avance sur Salaire',
+        retour: () => Navigator.of(context).pop(),
       ),
       floatingActionButton: _hasPendingRequest
           ? null

@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/api_service.dart';
 
@@ -206,10 +208,9 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nouveau Ticket'),
-        backgroundColor: const Color(0xFF0D47A1),
-        foregroundColor: Colors.white,
+      appBar: RhAppBar(
+        titre: 'Nouveau Ticket',
+        retour: () => Navigator.of(context).pop(),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -226,7 +227,6 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                     DropdownButtonFormField<String>(
                       value: _selectedCategory,
                       decoration: InputDecoration(
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                         hintText: 'Selectionner une categorie',
                       ),
@@ -298,7 +298,6 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                     TextFormField(
                       controller: _subjectController,
                       decoration: InputDecoration(
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                         hintText: 'Resume en quelques mots',
                       ),
@@ -314,7 +313,6 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                     TextFormField(
                       controller: _descriptionController,
                       decoration: InputDecoration(
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                         contentPadding: const EdgeInsets.all(12),
                         hintText: 'Decrivez votre probleme en detail...',
                       ),
@@ -393,7 +391,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                       child: ElevatedButton(
                         onPressed: _isSubmitting ? null : _submit,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0D47A1),
+                          backgroundColor: AppColors.blueDark,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
