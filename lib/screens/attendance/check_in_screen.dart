@@ -8,6 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/location_service.dart';
 import '../../services/api_service.dart';
 import '../schedule/schedule_screen.dart';
+import '../../shared/rh_ui.dart';
 
 class CheckInScreen extends StatefulWidget {
   final Campus campus;
@@ -141,7 +142,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erreur: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.danger,
         ),
       );
     }
@@ -164,7 +165,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Veuillez sélectionner une unité d\'enseignement'),
-            backgroundColor: Colors.orange,
+            backgroundColor: AppColors.warning,
           ),
         );
         return;
@@ -173,7 +174,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Vous avez un cours programmé. Veuillez sélectionner l\'UE correspondante.'),
-            backgroundColor: Colors.orange,
+            backgroundColor: AppColors.warning,
           ),
         );
         return;
@@ -197,7 +198,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result['message'] ?? 'Check-in réussi'),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.success,
         ),
       );
       Navigator.pop(context, true); // Retourne true pour indiquer le succès
@@ -205,7 +206,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result['message'] ?? 'Erreur lors du check-in'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.danger,
         ),
       );
     }
@@ -225,7 +226,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
         SnackBar(
           content: Text(
               'Check-out réussi! Durée: ${duration ~/ 60}h${duration % 60}min'),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.success,
         ),
       );
       Navigator.pop(context, true); // Retourne true pour indiquer le succès
@@ -233,7 +234,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result['message'] ?? 'Erreur lors du check-out'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.danger,
         ),
       );
     }
@@ -262,16 +263,15 @@ class _CheckInScreenState extends State<CheckInScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.green[400]!, Colors.green[600]!],
-                        ),
-                        borderRadius: BorderRadius.circular(12),
+                        color: AppColors.success,
+                        borderRadius: BorderRadius.circular(Brutal.radius),
+                        border: Border.all(color: AppColors.ink, width: Brutal.border),
                       ),
                       child: Row(
                         children: [
                           const Icon(
                             Icons.location_on,
-                            color: Colors.white,
+                            color: AppColors.white,
                             size: 32,
                           ),
                           const SizedBox(width: 12),
@@ -282,7 +282,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
                                 const Text(
                                   'Check-in Rapide',
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: AppColors.white,
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -291,7 +291,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
                                 Text(
                                   'Vous êtes entré dans la zone du ${widget.campus.name}',
                                   style: const TextStyle(
-                                    color: Colors.white,
+                                    color: AppColors.white,
                                     fontSize: 14,
                                   ),
                                 ),
@@ -353,7 +353,12 @@ class _CheckInScreenState extends State<CheckInScreen> {
 
                   // Statut de localisation
                   Card(
-                    color: _isInZone ? Colors.green[50] : Colors.red[50],
+                    // Fond clair, encre soutenue : la carte reprenait la
+                    // même couleur pour le fond, l'icône et le texte, et
+                    // ne se lisait plus du tout.
+                    color: _isInZone
+                        ? AppColors.successSoft
+                        : AppColors.dangerSoft,
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
@@ -363,7 +368,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
                             children: [
                               Icon(
                                 _isInZone ? Icons.check_circle : Icons.cancel,
-                                color: _isInZone ? Colors.green : Colors.red,
+                                color: _isInZone ? AppColors.success : AppColors.danger,
                               ),
                               const SizedBox(width: 8),
                               Text(
@@ -374,7 +379,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                   color:
-                                      _isInZone ? Colors.green[700] : Colors.red[700],
+                                      _isInZone ? AppColors.success : AppColors.danger,
                                 ),
                               ),
                             ],
@@ -384,7 +389,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
                             Text(
                               'Distance: ${_distanceFromCampus!.toStringAsFixed(0)} mètres',
                               style: TextStyle(
-                                color: Colors.grey[700],
+                                color: AppColors.inkMuted,
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -394,7 +399,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
                               'Ma position: ${_currentPosition!.latitude.toStringAsFixed(6)}, ${_currentPosition!.longitude.toStringAsFixed(6)}',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.grey[600],
+                                color: AppColors.inkMuted,
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -402,7 +407,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
                               'Campus: ${widget.campus.latitude.toStringAsFixed(6)}, ${widget.campus.longitude.toStringAsFixed(6)}',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.grey[600],
+                                color: AppColors.inkMuted,
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -410,7 +415,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
                               'Précision: ±${_currentPosition!.accuracy.toStringAsFixed(0)}m',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey[600],
+                                color: AppColors.inkMuted,
                               ),
                             ),
                           ],
@@ -448,8 +453,8 @@ class _CheckInScreenState extends State<CheckInScreen> {
                       label: const Text('CHECK-OUT'),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
+                        backgroundColor: AppColors.danger,
+                        foregroundColor: AppColors.white,
                       ),
                     )
                   else
@@ -459,8 +464,8 @@ class _CheckInScreenState extends State<CheckInScreen> {
                       label: const Text('CHECK-IN'),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
+                        backgroundColor: AppColors.success,
+                        foregroundColor: AppColors.white,
                       ),
                     ),
 
@@ -469,20 +474,22 @@ class _CheckInScreenState extends State<CheckInScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.orange[50],
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.orange[200]!),
+                        // Fond clair et encre soutenue : le même ton pour
+                        // les trois rendait l'avertissement illisible.
+                        color: AppColors.warningSoft,
+                        borderRadius: BorderRadius.circular(Brutal.radiusSmall),
+                        border: Border.all(color: AppColors.warning),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.warning, color: Colors.orange[700]),
+                          const Icon(Icons.warning, color: AppColors.warning),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
                               'Vous devez être dans un rayon de ${widget.campus.radius}m du campus pour pointer.',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.orange[900],
+                                color: AppColors.warning,
                               ),
                             ),
                           ),
@@ -507,7 +514,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
             child: Text(
               label,
               style: TextStyle(
-                color: Colors.grey[600],
+                color: AppColors.inkMuted,
                 fontSize: 14,
               ),
             ),
@@ -535,7 +542,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.school, color: Colors.blue[700]),
+                Icon(Icons.school, color: AppColors.blue),
                 const SizedBox(width: 8),
                 const Text(
                   'Unité d\'Enseignement',
@@ -559,20 +566,22 @@ class _CheckInScreenState extends State<CheckInScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.orange[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange[200]!),
+                  // Fond clair : l'encre et l'icône se perdaient sur un
+                  // orange plein de la même teinte qu'elles.
+                  color: AppColors.warningSoft,
+                  borderRadius: BorderRadius.circular(Brutal.radiusSmall),
+                  border: Border.all(color: AppColors.warning),
                 ),
                 child: Column(
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.warning_amber, color: Colors.orange[700]),
+                        const Icon(Icons.warning_amber, color: AppColors.warning),
                         const SizedBox(width: 12),
                         const Expanded(
                           child: Text(
                             'Aucune UE programmée pour le moment',
-                            style: TextStyle(fontSize: 13),
+                            style: TextStyle(fontSize: 13, color: AppColors.ink),
                           ),
                         ),
                       ],
@@ -599,8 +608,8 @@ class _CheckInScreenState extends State<CheckInScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[300]!),
-                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.line),
+                      borderRadius: BorderRadius.circular(Brutal.radiusSmall),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<UniteEnseignement>(
@@ -639,7 +648,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
                                   subtitle,
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.grey[600],
+                                    color: AppColors.inkMuted,
                                   ),
                                 ),
                               ],
@@ -659,8 +668,8 @@ class _CheckInScreenState extends State<CheckInScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.blue[50],
-                        borderRadius: BorderRadius.circular(8),
+                        color: AppColors.blue,
+                        borderRadius: BorderRadius.circular(Brutal.radiusSmall),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -672,7 +681,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
                                 'Heures restantes',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.grey[600],
+                                  color: AppColors.inkMuted,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -681,7 +690,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.blue,
+                                  color: AppColors.blue,
                                 ),
                               ),
                             ],
@@ -689,7 +698,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
                           Container(
                             width: 1,
                             height: 30,
-                            color: Colors.grey[300],
+                            color: AppColors.line,
                           ),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
@@ -698,7 +707,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
                                 'Progression',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.grey[600],
+                                  color: AppColors.inkMuted,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -707,7 +716,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.blue,
+                                  color: AppColors.blue,
                                 ),
                               ),
                             ],

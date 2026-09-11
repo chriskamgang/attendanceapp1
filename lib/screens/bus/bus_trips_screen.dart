@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import '../../services/bus_service.dart';
 
 class BusTripsScreen extends StatefulWidget {
@@ -50,11 +52,10 @@ class _BusTripsScreenState extends State<BusTripsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: const Text('Mes Trajets'),
-        backgroundColor: const Color(0xFF1565C0),
-        foregroundColor: Colors.white,
+      backgroundColor: AppColors.background,
+      appBar: RhAppBar(
+        titre: 'Mes Trajets',
+        retour: () => Navigator.of(context).pop(),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

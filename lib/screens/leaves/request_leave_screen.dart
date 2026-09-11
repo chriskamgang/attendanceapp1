@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import 'package:intl/intl.dart';
 import '../../services/api_service.dart';
 
@@ -131,7 +133,6 @@ class _RequestLeaveScreenState extends State<RequestLeaveScreen> {
               DropdownButtonFormField<String>(
                 value: _selectedType,
                 decoration: InputDecoration(
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 ),
                 items: leaveTypes.entries.map((e) {
@@ -157,12 +158,16 @@ class _RequestLeaveScreenState extends State<RequestLeaveScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                             decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey[400]!),
+                              color: AppColors.white,
+                              border: Border.all(
+                                color: AppColors.ink,
+                                width: Brutal.border,
+                              ),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Row(
                               children: [
-                                Icon(Icons.calendar_today, size: 18, color: Colors.grey[600]),
+                                Icon(Icons.calendar_today, size: 18, color: AppColors.inkMuted),
                                 const SizedBox(width: 8),
                                 Text(
                                   _startDate != null ? dateFormat.format(_startDate!) : 'Choisir',
@@ -187,12 +192,16 @@ class _RequestLeaveScreenState extends State<RequestLeaveScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                             decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey[400]!),
+                              color: AppColors.white,
+                              border: Border.all(
+                                color: AppColors.ink,
+                                width: Brutal.border,
+                              ),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Row(
                               children: [
-                                Icon(Icons.calendar_today, size: 18, color: Colors.grey[600]),
+                                Icon(Icons.calendar_today, size: 18, color: AppColors.inkMuted),
                                 const SizedBox(width: 8),
                                 Text(
                                   _endDate != null ? dateFormat.format(_endDate!) : 'Choisir',
@@ -219,11 +228,11 @@ class _RequestLeaveScreenState extends State<RequestLeaveScreen> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+                      Icon(Icons.info_outline, color: AppColors.blueDark, size: 20),
                       const SizedBox(width: 8),
                       Text(
                         '$days jour(s) ouvre(s)',
-                        style: TextStyle(fontWeight: FontWeight.w600, color: Colors.blue[700]),
+                        style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.blueDark),
                       ),
                     ],
                   ),
@@ -239,7 +248,6 @@ class _RequestLeaveScreenState extends State<RequestLeaveScreen> {
                 maxLines: 4,
                 decoration: InputDecoration(
                   hintText: 'Decrivez la raison de votre demande...',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   contentPadding: const EdgeInsets.all(16),
                 ),
                 validator: (value) {
@@ -258,9 +266,8 @@ class _RequestLeaveScreenState extends State<RequestLeaveScreen> {
                 child: ElevatedButton(
                   onPressed: _isSubmitting ? null : _submit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue[700],
+                    backgroundColor: AppColors.blueDark,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: _isSubmitting
                       ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))

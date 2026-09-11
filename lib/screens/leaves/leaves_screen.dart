@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import '../../services/api_service.dart';
 import 'request_leave_screen.dart';
 
@@ -144,8 +146,7 @@ class _LeavesScreenState extends State<LeavesScreen> with SingleTickerProviderSt
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 0,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -163,8 +164,9 @@ class _LeavesScreenState extends State<LeavesScreen> with SingleTickerProviderSt
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
+                    color: statusColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(Brutal.radiusSmall),
+                    border: Border.all(color: statusColor, width: 1.8),
                   ),
                   child: Text(
                     statusLabel,
@@ -180,21 +182,21 @@ class _LeavesScreenState extends State<LeavesScreen> with SingleTickerProviderSt
                 const SizedBox(width: 6),
                 Text(
                   '${_formatDate(leave['start_date'])} - ${_formatDate(leave['end_date'])}',
-                  style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                  style: TextStyle(fontSize: 13, color: AppColors.inkMuted),
                 ),
                 const SizedBox(width: 12),
-                Icon(Icons.timelapse, size: 14, color: Colors.blue[700]),
+                Icon(Icons.timelapse, size: 14, color: AppColors.blueDark),
                 const SizedBox(width: 4),
                 Text(
                   '${leave['days_count']} jour(s)',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.blue[700]),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.blueDark),
                 ),
               ],
             ),
             const SizedBox(height: 6),
             Text(
               leave['reason'] ?? '',
-              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 13, color: AppColors.inkMuted),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -203,18 +205,18 @@ class _LeavesScreenState extends State<LeavesScreen> with SingleTickerProviderSt
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: AppColors.inkMuted,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.comment, size: 14, color: Colors.grey[600]),
+                    Icon(Icons.comment, size: 14, color: AppColors.inkMuted),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         leave['review_comment'],
-                        style: TextStyle(fontSize: 12, color: Colors.grey[700], fontStyle: FontStyle.italic),
+                        style: TextStyle(fontSize: 12, color: AppColors.inkMuted, fontStyle: FontStyle.italic),
                       ),
                     ),
                   ],
@@ -257,7 +259,6 @@ class _LeavesScreenState extends State<LeavesScreen> with SingleTickerProviderSt
 
           return Card(
             margin: const EdgeInsets.only(bottom: 10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -275,27 +276,39 @@ class _LeavesScreenState extends State<LeavesScreen> with SingleTickerProviderSt
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: remaining > 0 ? Colors.green[700] : Colors.red[700],
+                          color: remaining > 0 ? AppColors.success : AppColors.danger,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: LinearProgressIndicator(
-                      value: progress.clamp(0.0, 1.0),
-                      minHeight: 8,
-                      backgroundColor: Colors.grey[200],
-                      valueColor: AlwaysStoppedAnimation(
-                        progress > 0.8 ? Colors.red : (progress > 0.5 ? Colors.orange : Colors.blue),
+                  // La jauge est cernée comme le reste : sans contour, la
+                  // part consommée flottait sur un fond gris trop sombre.
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: AppColors.ink, width: 1.8),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: progress.clamp(0.0, 1.0),
+                        minHeight: 9,
+                        backgroundColor: AppColors.white,
+                        valueColor: AlwaysStoppedAnimation(
+                          progress > 0.8
+                              ? AppColors.danger
+                              : (progress > 0.5
+                                    ? AppColors.warning
+                                    : AppColors.success),
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     '$used utilise(s) sur $total',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 12, color: AppColors.inkMuted),
                   ),
                 ],
               ),

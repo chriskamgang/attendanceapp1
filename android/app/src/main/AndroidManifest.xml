@@ -23,11 +23,22 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
 
+    <!-- INSAM BUS : contrôle des pass, le chauffeur scanne le QR des
+         étudiants à la montée. -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+
+    <!-- INSAM BUS : la boussole oriente le bus sur la carte quand il est à
+         l'arrêt, là où le GPS ne donne aucun cap. Facultative — sans
+         magnétomètre, le cap GPS suffit dès que le bus roule. -->
+    <uses-feature android:name="android.hardware.sensor.compass" android:required="false"/>
+
     <application
         android:label="Estuaire RH"
         android:allowBackup="false"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:networkSecurityConfig="@xml/network_security_config">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -86,6 +97,11 @@
                 <action android:name="ACTION_PRESENCE_YES"/>
             </intent-filter>
         </receiver>
+
+        <!-- INSAM BUS : carte de suivi du bus en direct. La clé est
+             injectée au build (voir android/app/build.gradle) et doit être
+             autorisée pour le package com.estuaire.attendance_app. -->
+        <meta-data android:name="com.google.android.geo.API_KEY" android:value="${MAPS_API_KEY}"/>
 
         <!-- Notification default icon and color -->
         <meta-data

@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import '../../services/bus_service.dart';
 
 class BusTrackingScreen extends StatefulWidget {
@@ -40,10 +42,10 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Mon Bus'),
-        backgroundColor: const Color(0xFF1565C0),
+        backgroundColor: AppColors.blue,
         foregroundColor: Colors.white,
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
@@ -98,10 +100,9 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF43A047), Color(0xFF2E7D32)],
-            ),
-            borderRadius: BorderRadius.circular(16),
+            color: Color(0xFF43A047),
+            borderRadius: BorderRadius.circular(Brutal.radius),
+            border: Border.all(color: AppColors.ink, width: Brutal.border),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -118,7 +119,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(20)),
+                    decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(Brutal.radius)),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -157,7 +158,8 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+              border: Border.all(color: AppColors.ink, width: Brutal.border),
+              boxShadow: Brutal.shadow(const Offset(3, 3)),
             ),
             child: Row(
               children: [
@@ -175,7 +177,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                       const SizedBox(height: 4),
                       Text(
                         estimation is String ? estimation : '${estimation['minutes'] ?? '?'} min',
-                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1565C0)),
+                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.blue),
                       ),
                     ],
                   ),
@@ -193,7 +195,8 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+              border: Border.all(color: AppColors.ink, width: Brutal.border),
+              boxShadow: Brutal.shadow(const Offset(3, 3)),
             ),
             child: Row(
               children: [
@@ -228,7 +231,8 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+              border: Border.all(color: AppColors.ink, width: Brutal.border),
+              boxShadow: Brutal.shadow(const Offset(3, 3)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/unite_enseignement.dart';
+import '../shared/rh_ui.dart';
 
 class UniteEnseignementCard extends StatelessWidget {
   final UniteEnseignement ue;
@@ -18,7 +19,7 @@ class UniteEnseignementCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Brutal.radius),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -36,7 +37,7 @@ class UniteEnseignementCard extends StatelessWidget {
                           ue.codeUe,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey[600],
+                            color: AppColors.inkMuted,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -58,9 +59,9 @@ class UniteEnseignementCard extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: ue.isActivee()
-                          ? Colors.green.withOpacity(0.1)
-                          : Colors.orange.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
+                          ? AppColors.success.withOpacity(0.1)
+                          : AppColors.warning.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(Brutal.radius),
                     ),
                     child: Text(
                       ue.isActivee() ? 'Activée' : 'En attente',
@@ -68,8 +69,8 @@ class UniteEnseignementCard extends StatelessWidget {
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: ue.isActivee()
-                            ? Colors.green[700]
-                            : Colors.orange[700],
+                            ? AppColors.success
+                            : AppColors.warning,
                       ),
                     ),
                   ),
@@ -89,7 +90,7 @@ class UniteEnseignementCard extends StatelessWidget {
                           'Progression',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey[600],
+                            color: AppColors.inkMuted,
                           ),
                         ),
                         Text(
@@ -104,11 +105,11 @@ class UniteEnseignementCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(Brutal.radiusSmall),
                       child: LinearProgressIndicator(
                         value: ue.pourcentageProgression / 100,
                         minHeight: 8,
-                        backgroundColor: Colors.grey[200],
+                        backgroundColor: AppColors.line,
                         valueColor: AlwaysStoppedAnimation<Color>(
                           _getProgressColor(ue.pourcentageProgression),
                         ),
@@ -128,7 +129,7 @@ class UniteEnseignementCard extends StatelessWidget {
                         icon: Icons.access_time,
                         label: 'Effectuées',
                         value: '${ue.heuresEffectuees.toStringAsFixed(1)}h',
-                        color: Colors.blue,
+                        color: AppColors.blue,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -138,7 +139,7 @@ class UniteEnseignementCard extends StatelessWidget {
                         icon: Icons.hourglass_empty,
                         label: 'Restantes',
                         value: '${ue.heuresRestantes.toStringAsFixed(1)}h',
-                        color: Colors.orange,
+                        color: AppColors.warning,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -160,10 +161,10 @@ class UniteEnseignementCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(8),
+                    color: AppColors.success.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(Brutal.radiusSmall),
                     border: Border.all(
-                      color: Colors.green.withOpacity(0.2),
+                      color: AppColors.success.withOpacity(0.2),
                     ),
                   ),
                   child: Row(
@@ -176,7 +177,7 @@ class UniteEnseignementCard extends StatelessWidget {
                             'Montant payé',
                             style: TextStyle(
                               fontSize: 11,
-                              color: Colors.grey[600],
+                              color: AppColors.inkMuted,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -185,7 +186,7 @@ class UniteEnseignementCard extends StatelessWidget {
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: Colors.green,
+                              color: AppColors.success,
                             ),
                           ),
                         ],
@@ -193,7 +194,7 @@ class UniteEnseignementCard extends StatelessWidget {
                       Container(
                         width: 1,
                         height: 30,
-                        color: Colors.grey[300],
+                        color: AppColors.line,
                       ),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
@@ -202,7 +203,7 @@ class UniteEnseignementCard extends StatelessWidget {
                             'Restant',
                             style: TextStyle(
                               fontSize: 11,
-                              color: Colors.grey[600],
+                              color: AppColors.inkMuted,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -211,7 +212,7 @@ class UniteEnseignementCard extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: Colors.grey[700],
+                              color: AppColors.inkMuted,
                             ),
                           ),
                         ],
@@ -224,10 +225,10 @@ class UniteEnseignementCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(8),
+                    color: AppColors.warning.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(Brutal.radiusSmall),
                     border: Border.all(
-                      color: Colors.orange.withOpacity(0.2),
+                      color: AppColors.warning.withOpacity(0.2),
                     ),
                   ),
                   child: Row(
@@ -235,7 +236,7 @@ class UniteEnseignementCard extends StatelessWidget {
                       Icon(
                         Icons.info_outline,
                         size: 20,
-                        color: Colors.orange[700],
+                        color: AppColors.warning,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -243,7 +244,7 @@ class UniteEnseignementCard extends StatelessWidget {
                           'En attente d\'activation par l\'administration',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.orange[900],
+                            color: AppColors.warning,
                           ),
                         ),
                       ),
@@ -258,7 +259,7 @@ class UniteEnseignementCard extends StatelessWidget {
                       'Volume horaire',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: AppColors.inkMuted,
                       ),
                     ),
                     Text(
@@ -289,7 +290,7 @@ class UniteEnseignementCard extends StatelessWidget {
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(Brutal.radiusSmall),
       ),
       child: Column(
         children: [
@@ -308,7 +309,7 @@ class UniteEnseignementCard extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 10,
-              color: Colors.grey[600],
+              color: AppColors.inkMuted,
             ),
             textAlign: TextAlign.center,
           ),
@@ -318,9 +319,9 @@ class UniteEnseignementCard extends StatelessWidget {
   }
 
   Color _getProgressColor(double percentage) {
-    if (percentage >= 80) return Colors.green;
-    if (percentage >= 50) return Colors.blue;
-    if (percentage >= 30) return Colors.orange;
-    return Colors.red;
+    if (percentage >= 80) return AppColors.success;
+    if (percentage >= 50) return AppColors.blue;
+    if (percentage >= 30) return AppColors.warning;
+    return AppColors.danger;
   }
 }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../shared/rh_ui.dart';
 import 'package:geolocator/geolocator.dart';
 import '../services/security_service.dart';
 import '../services/security_api_service.dart';
@@ -25,9 +27,9 @@ class _SecurityTestScreenState extends State<SecurityTestScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Test Sécurité Anti-Fraude'),
-        backgroundColor: Colors.red.shade700,
+      appBar: RhAppBar(
+        titre: 'Test Sécurité Anti-Fraude',
+        retour: () => Navigator.of(context).pop(),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

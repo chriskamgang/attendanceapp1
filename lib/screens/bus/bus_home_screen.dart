@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import '../../services/bus_service.dart';
 import 'bus_tracking_screen.dart';
 import 'bus_subscriptions_screen.dart';
@@ -54,10 +56,10 @@ class _BusHomeScreenState extends State<BusHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Transport Bus', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF1565C0),
+        backgroundColor: AppColors.blue,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -118,7 +120,7 @@ class _BusHomeScreenState extends State<BusHomeScreen> {
               icon: const Icon(Icons.refresh),
               label: const Text('Reessayer'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1565C0),
+                backgroundColor: AppColors.blue,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -147,11 +149,11 @@ class _BusHomeScreenState extends State<BusHomeScreen> {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFF1565C0), Color(0xFF0D47A1)],
+                colors: [AppColors.blue, AppColors.blueDark],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(Brutal.radius),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -170,7 +172,8 @@ class _BusHomeScreenState extends State<BusHomeScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.green.shade400,
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(Brutal.radius),
+                        border: Border.all(color: AppColors.ink, width: Brutal.border),
                       ),
                       child: const Text('Actif', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                     ),
@@ -257,7 +260,8 @@ class _BusHomeScreenState extends State<BusHomeScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 2))],
+          border: Border.all(color: AppColors.ink, width: Brutal.border),
+          boxShadow: Brutal.shadow(const Offset(3, 3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,7 +294,7 @@ class _BusHomeScreenState extends State<BusHomeScreen> {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
-        leading: Icon(icon, color: const Color(0xFF1565C0)),
+        leading: Icon(icon, color: AppColors.blue),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Text(subtitle),
         trailing: const Icon(Icons.chevron_right),

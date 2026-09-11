@@ -47,10 +47,26 @@ class StorageService {
   }
 
   // Clear all
+  ///
+  /// Efface les seules données d'Estuaire RH. L'application héberge aussi
+  /// l'espace INSAM BUS, dont les clés portent le préfixe `bus_` : un
+  /// `clear()` global déconnecterait cet espace au passage, alors que les
+  /// deux sessions sont indépendantes.
   Future<void> clearAll() async {
     await init();
-    await _prefs!.clear();
+
+    final aEffacer = _prefs!
+        .getKeys()
+        .where((cle) => !cle.startsWith(_busPrefix))
+        .toList();
+
+    for (final cle in aEffacer) {
+      await _prefs!.remove(cle);
+    }
   }
+
+  /// Préfixe réservé au module INSAM BUS (voir `lib/bus/`).
+  static const String _busPrefix = 'bus_';
 
   // Clear token only
   Future<void> clearToken() async {

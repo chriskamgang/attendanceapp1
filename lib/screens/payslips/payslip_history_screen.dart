@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
@@ -87,10 +89,9 @@ class _PayslipHistoryScreenState extends State<PayslipHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Historique Fiches de Paie'),
-        backgroundColor: const Color(0xFF1A237E),
-        foregroundColor: Colors.white,
+      appBar: RhAppBar(
+        titre: 'Historique Fiches de Paie',
+        retour: () => Navigator.of(context).pop(),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -133,7 +134,7 @@ class _PayslipHistoryScreenState extends State<PayslipHistoryScreen> {
                                   width: 50,
                                   height: 50,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF1A237E).withAlpha(20),
+                                    color: AppColors.blueDark.withAlpha(20),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Column(
@@ -141,7 +142,7 @@ class _PayslipHistoryScreenState extends State<PayslipHistoryScreen> {
                                     children: [
                                       Text(
                                         month.toString().padLeft(2, '0'),
-                                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A237E)),
+                                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.blueDark),
                                       ),
                                       Text(
                                         year.toString().substring(2),

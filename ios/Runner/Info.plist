@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- Clé Google Maps (rendu de la carte uniquement).
+	     Le géocodage et les itinéraires passent par OpenStreetMap. -->
+	<key>GMSApiKey</key>
+	<string>AIzaSyAffUHSFli6kMnjkfJOKBGO6AN828ixJPo</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
@@ -45,15 +49,26 @@
 		<false/>
 		<key>NSExceptionDomains</key>
 		<dict>
-			<key>192.168.1.159</key>
+			<key>192.168.3.237</key>
 			<dict>
 				<key>NSExceptionAllowsInsecureHTTPLoads</key>
 				<true/>
 				<key>NSIncludesSubdomains</key>
 				<true/>
 			</dict>
+			<key>localhost</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
 		</dict>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>L’appareil photo sert au contrôle des pass du transport : le chauffeur scanne le QR des étudiants à la montée.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Cette application a besoin de votre position pour vérifier que vous êtes sur le campus lors du pointage et pour les vérifications de présence.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Cette application a besoin de votre position pour les vérifications de présence même en arrière-plan.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Utilisez Face ID pour deverrouiller l'application et securiser votre compte.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+
+import '../shared/rh_ui.dart';
 import 'package:provider/provider.dart';
+
+import '../bus/app/core/widgets/brutal_bottom_nav.dart';
 import 'package:geolocator/geolocator.dart';
 import '../providers/auth_provider.dart';
 import 'home/home_screen.dart';
@@ -124,7 +128,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF1565C0), Color(0xFF0D47A1)],
+            colors: [AppColors.blue, AppColors.blueDark],
           ),
         ),
         child: SafeArea(
@@ -153,7 +157,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 label: const Text('Deverrouiller', style: TextStyle(fontSize: 16)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFF0D47A1),
+                  foregroundColor: AppColors.blueDark,
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
@@ -177,38 +181,26 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     final isStudent = user?.isStudent() ?? false;
     final screens = _getScreens(isStudent);
 
-    final navItems = <BottomNavigationBarItem>[
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.home),
-        label: 'Accueil',
-      ),
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.history),
-        label: 'Historique',
-      ),
+    final navItems = <BrutalNavItem>[
+      const BrutalNavItem(icon: Icons.home_rounded, label: 'Accueil'),
+      const BrutalNavItem(icon: Icons.history_rounded, label: 'Historique'),
       if (isStudent) ...[
-        const BottomNavigationBarItem(
-          icon: Icon(Icons.directions_bus),
+        const BrutalNavItem(
+          icon: Icons.directions_bus_rounded,
           label: 'Bus',
         ),
-        const BottomNavigationBarItem(
-          icon: Icon(Icons.credit_card),
-          label: 'Moratoire',
-        ),
+        const BrutalNavItem(icon: Icons.credit_card_rounded, label: 'Moratoire'),
       ] else ...[
-        const BottomNavigationBarItem(
-          icon: Icon(Icons.confirmation_number_rounded),
+        const BrutalNavItem(
+          icon: Icons.confirmation_number_rounded,
           label: 'Tickets',
         ),
-        const BottomNavigationBarItem(
-          icon: Icon(Icons.business_center_rounded),
+        const BrutalNavItem(
+          icon: Icons.business_center_rounded,
           label: 'RH',
         ),
       ],
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.person),
-        label: 'Profil',
-      ),
+      const BrutalNavItem(icon: Icons.person_rounded, label: 'Profil'),
     ];
 
     // Reset index if out of bounds
@@ -221,8 +213,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         index: _currentIndex,
         children: screens,
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
+      // L'onglet actif reçoit un bloc plein encadré, du même bleu que les
+      // bandeaux : une teinte seule se perdait du coin de l'œil.
+      bottomNavigationBar: BrutalBottomNav(
         currentIndex: _currentIndex,
         onTap: (index) {
           setState(() {
@@ -230,9 +223,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           });
         },
         items: navItems,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        showUnselectedLabels: true,
       ),
     );
   }

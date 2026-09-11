@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../models/task.dart';
 import '../../services/api_service.dart';
+import '../../shared/rh_ui.dart';
 
 class TaskListScreen extends StatefulWidget {
   const TaskListScreen({super.key});
@@ -15,10 +17,6 @@ class _TaskListScreenState extends State<TaskListScreen> {
   List<Task> _filteredTasks = [];
   bool _isLoading = true;
   String _selectedFilter = 'all';
-
-  static const Color _primaryDark = Color(0xFF1A237E);
-  static const Color _primaryMid = Color(0xFF283593);
-  static const Color _accentBlue = Color(0xFF42A5F5);
 
   @override
   void initState() {
@@ -64,11 +62,11 @@ class _TaskListScreenState extends State<TaskListScreen> {
   Color _priorityColor(String priority) {
     switch (priority) {
       case 'high':
-        return Colors.red;
+        return AppColors.danger;
       case 'medium':
-        return Colors.orange;
+        return AppColors.warning;
       case 'low':
-        return Colors.green;
+        return AppColors.success;
       default:
         return Colors.grey;
     }
@@ -79,9 +77,9 @@ class _TaskListScreenState extends State<TaskListScreen> {
       case 'pending':
         return Colors.grey;
       case 'in_progress':
-        return Colors.blue;
+        return AppColors.blue;
       case 'completed':
-        return Colors.green;
+        return AppColors.success;
       default:
         return Colors.grey;
     }
@@ -123,7 +121,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result['message'] ?? 'Statut mis a jour'),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.success,
         ),
       );
       _loadTasks();
@@ -131,7 +129,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result['message'] ?? 'Erreur'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.danger,
         ),
       );
     }
@@ -145,7 +143,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Brutal.radius)),
         title: const Row(
           children: [
             Icon(Icons.monetization_on, color: Colors.orange, size: 28),
@@ -176,9 +174,6 @@ class _TaskListScreenState extends State<TaskListScreen> {
                   labelText: 'Montant (FCFA)',
                   hintText: 'Ex: 5000',
                   prefixIcon: const Icon(Icons.payments_outlined),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
                   filled: true,
                   fillColor: Colors.grey[50],
                 ),
@@ -265,8 +260,8 @@ class _TaskListScreenState extends State<TaskListScreen> {
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 20),
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
+                    color: AppColors.line,
+                    borderRadius: BorderRadius.circular(Brutal.radiusSmall),
                   ),
                 ),
               ),
@@ -288,7 +283,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                   _buildBadge(task.priorityLabel, _priorityColor(task.priority)),
                   _buildBadge(task.myStatusLabel, _statusColor(task.myStatus)),
                   if (task.isOverdue)
-                    _buildBadge('En retard', Colors.red),
+                    _buildBadge('En retard', AppColors.danger),
                 ],
               ),
               const SizedBox(height: 16),
@@ -298,17 +293,17 @@ class _TaskListScreenState extends State<TaskListScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: task.penaltyApproved ? Colors.red[50] : Colors.orange[50],
-                    borderRadius: BorderRadius.circular(8),
+                    color: task.penaltyApproved ? AppColors.danger : AppColors.warning,
+                    borderRadius: BorderRadius.circular(Brutal.radiusSmall),
                     border: Border.all(
-                      color: task.penaltyApproved ? Colors.red[200]! : Colors.orange[200]!,
+                      color: task.penaltyApproved ? AppColors.danger : AppColors.warning,
                     ),
                   ),
                   child: Row(
                     children: [
                       Icon(
                         task.penaltyApproved ? Icons.warning : Icons.info_outline,
-                        color: task.penaltyApproved ? Colors.red : Colors.orange,
+                        color: task.penaltyApproved ? AppColors.danger : AppColors.warning,
                         size: 20,
                       ),
                       const SizedBox(width: 10),
@@ -321,7 +316,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                                   ? 'Coupure approuvee: ${task.formattedPenalty}'
                                   : 'Montant engage: ${task.formattedPenalty}',
                               style: TextStyle(
-                                color: task.penaltyApproved ? Colors.red[800] : Colors.orange[800],
+                                color: task.penaltyApproved ? AppColors.danger : AppColors.warning,
                                 fontWeight: FontWeight.w600,
                                 fontSize: 13,
                               ),
@@ -330,7 +325,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                               Text(
                                 'Ce montant sera deduit de votre salaire',
                                 style: TextStyle(
-                                  color: Colors.red[600],
+                                  color: AppColors.danger,
                                   fontSize: 11,
                                 ),
                               ),
@@ -364,12 +359,12 @@ class _TaskListScreenState extends State<TaskListScreen> {
               if (task.dueDate != null) ...[
                 Row(
                   children: [
-                    Icon(Icons.calendar_today, size: 16, color: task.isOverdue ? Colors.red : Colors.grey),
+                    Icon(Icons.calendar_today, size: 16, color: task.isOverdue ? AppColors.danger : Colors.grey),
                     const SizedBox(width: 8),
                     Text(
                       'Echeance: ${task.dueDate!.day}/${task.dueDate!.month}/${task.dueDate!.year}',
                       style: TextStyle(
-                        color: task.isOverdue ? Colors.red : Colors.grey[700],
+                        color: task.isOverdue ? AppColors.danger : AppColors.inkMuted,
                         fontWeight: task.isOverdue ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
@@ -385,7 +380,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                     const SizedBox(width: 8),
                     Text(
                       'Assignee par: ${task.creatorName}',
-                      style: TextStyle(color: Colors.grey[700]),
+                      style: TextStyle(color: AppColors.inkMuted),
                     ),
                   ],
                 ),
@@ -415,8 +410,8 @@ class _TaskListScreenState extends State<TaskListScreen> {
                           icon: const Icon(Icons.play_arrow),
                           label: const Text('Commencer'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            foregroundColor: Colors.white,
+                            backgroundColor: AppColors.blue,
+                            foregroundColor: AppColors.white,
                           ),
                         ),
                       ),
@@ -431,8 +426,8 @@ class _TaskListScreenState extends State<TaskListScreen> {
                         icon: const Icon(Icons.check),
                         label: const Text('Terminer'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
+                          backgroundColor: AppColors.success,
+                          foregroundColor: AppColors.white,
                         ),
                       ),
                     ),
@@ -442,17 +437,20 @@ class _TaskListScreenState extends State<TaskListScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.green[50],
-                    borderRadius: BorderRadius.circular(8),
+                    // Fond clair : l'encre verte disparaissait sur un vert
+                    // plein de la même teinte.
+                    color: AppColors.successSoft,
+                    borderRadius: BorderRadius.circular(Brutal.radiusSmall),
+                    border: Border.all(color: AppColors.success),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.check_circle, color: Colors.green),
+                      const Icon(Icons.check_circle, color: AppColors.success),
                       const SizedBox(width: 8),
                       const Text(
                         'Tache terminee',
                         style: TextStyle(
-                          color: Colors.green,
+                          color: AppColors.success,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -472,7 +470,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Brutal.radius),
         border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Text(
@@ -489,7 +487,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
           // AppBar
@@ -498,21 +496,36 @@ class _TaskListScreenState extends State<TaskListScreen> {
             floating: false,
             pinned: true,
             automaticallyImplyLeading: false,
+            backgroundColor: AppColors.blueDark,
+            surfaceTintColor: Colors.transparent,
+            // Icônes de la barre d'état en clair : le bandeau est sombre.
+            systemOverlayStyle: SystemUiOverlayStyle.light,
+            // Le titre est posé dans le fond plutôt que dans la barre :
+            // `FlexibleSpaceBar` le recentre en se repliant, ce qui le
+            // faisait déborder à gauche sur les écrans étroits.
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [_primaryDark, _primaryMid],
+                color: AppColors.blueDark,
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text(
+                          'Mes Tâches',
+                          style: TextStyle(
+                            fontSize: 26,
+                            height: 1.1,
+                            color: AppColors.white,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.6,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ),
-              title: const Text(
-                'Mes Taches',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
@@ -550,7 +563,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.task_alt, size: 64, color: Colors.grey[300]),
+                    Icon(Icons.task_alt, size: 64, color: AppColors.line),
                     const SizedBox(height: 16),
                     Text(
                       _selectedFilter == 'all'
@@ -558,7 +571,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                           : 'Aucune tache dans cette categorie',
                       style: TextStyle(
                         fontSize: 16,
-                        color: Colors.grey[500],
+                        color: AppColors.inkMuted,
                       ),
                     ),
                   ],
@@ -591,16 +604,16 @@ class _TaskListScreenState extends State<TaskListScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? _accentBlue : Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          color: isSelected ? AppColors.blue : AppColors.white,
+          borderRadius: BorderRadius.circular(Brutal.radius),
           border: Border.all(
-            color: isSelected ? _accentBlue : Colors.grey[300]!,
+            color: isSelected ? AppColors.blue : AppColors.line,
           ),
         ),
         child: Text(
           '$label ($count)',
           style: TextStyle(
-            color: isSelected ? Colors.white : Colors.grey[700],
+            color: isSelected ? AppColors.white : AppColors.inkMuted,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             fontSize: 13,
           ),
@@ -613,11 +626,11 @@ class _TaskListScreenState extends State<TaskListScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Card(
-        elevation: 1,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Brutal.radius)),
         child: InkWell(
           onTap: () => _showTaskDetail(task),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(Brutal.radius),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -628,7 +641,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                   height: 40,
                   decoration: BoxDecoration(
                     color: _statusColor(task.myStatus).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(Brutal.radius),
                   ),
                   child: Icon(
                     _statusIcon(task.myStatus),
@@ -672,7 +685,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                             task.priorityLabel,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[600],
+                              color: AppColors.inkMuted,
                             ),
                           ),
                           if (task.hasPenalty) ...[
@@ -680,14 +693,14 @@ class _TaskListScreenState extends State<TaskListScreen> {
                             Icon(
                               Icons.monetization_on,
                               size: 12,
-                              color: task.penaltyApproved ? Colors.red : Colors.orange,
+                              color: task.penaltyApproved ? AppColors.danger : AppColors.warning,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               task.formattedPenalty,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: task.penaltyApproved ? Colors.red : Colors.orange,
+                                color: task.penaltyApproved ? AppColors.danger : AppColors.warning,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -697,14 +710,14 @@ class _TaskListScreenState extends State<TaskListScreen> {
                             Icon(
                               Icons.calendar_today,
                               size: 12,
-                              color: task.isOverdue ? Colors.red : Colors.grey[500],
+                              color: task.isOverdue ? AppColors.danger : AppColors.inkMuted,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               '${task.dueDate!.day}/${task.dueDate!.month}',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: task.isOverdue ? Colors.red : Colors.grey[600],
+                                color: task.isOverdue ? AppColors.danger : AppColors.inkMuted,
                                 fontWeight: task.isOverdue ? FontWeight.bold : FontWeight.normal,
                               ),
                             ),
@@ -716,7 +729,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                 ),
 
                 // Arrow
-                Icon(Icons.chevron_right, color: Colors.grey[400]),
+                Icon(Icons.chevron_right, color: AppColors.inkMuted),
               ],
             ),
           ),

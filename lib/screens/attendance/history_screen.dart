@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../models/attendance.dart';
 import 'package:intl/intl.dart';
+import '../../shared/rh_ui.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -97,13 +98,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final sortedDates = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Historique'),
+      appBar: RhAppBar(
+        titre: 'Historique',
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadHistory,
-          ),
+          RhBarAction(icone: Icons.refresh_rounded, onTap: _loadHistory),
         ],
       ),
       body: Column(
@@ -111,7 +109,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           // Filtres
           Container(
             padding: const EdgeInsets.all(16),
-            color: Colors.grey[100],
+            color: AppColors.background,
             child: Column(
               children: [
                 Row(
@@ -138,9 +136,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey[300]!),
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(Brutal.radiusSmall),
+                      border: Border.all(color: AppColors.ink, width: Brutal.border),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -151,7 +149,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               : DateFormat('dd MMMM yyyy', 'fr_FR').format(_selectedDate),
                           style: const TextStyle(fontSize: 16),
                         ),
-                        const Icon(Icons.calendar_today, color: Colors.blue),
+                        const Icon(Icons.calendar_today, color: AppColors.blue),
                       ],
                     ),
                   ),
@@ -169,11 +167,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.history, size: 64, color: Colors.grey[400]),
+                            Icon(Icons.history, size: 64, color: AppColors.inkMuted),
                             const SizedBox(height: 16),
                             Text(
                               'Aucun historique pour cette période',
-                              style: TextStyle(color: Colors.grey[600]),
+                              style: TextStyle(color: AppColors.inkMuted),
                             ),
                           ],
                         ),
@@ -252,7 +250,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             // Date
             Row(
               children: [
-                Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                Icon(Icons.calendar_today, size: 16, color: AppColors.inkMuted),
                 const SizedBox(width: 8),
                 Text(
                   DateFormat('EEEE dd MMMM yyyy', 'fr_FR').format(date),
@@ -269,7 +267,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             _buildAttendanceRow(
               'Check-in',
               hasCheckIn ? DateFormat('HH:mm:ss').format(checkIn.timestamp) : 'N/A',
-              hasCheckIn ? (checkIn.isLate ? Colors.orange : Colors.green) : Colors.grey,
+              hasCheckIn ? (checkIn.isLate ? AppColors.warning : AppColors.success) : Colors.grey,
               hasCheckIn ? checkIn.campus?.name : null,
               hasCheckIn && checkIn.uniteEnseignement != null
                   ? '${checkIn.uniteEnseignement!.codeUe} - ${checkIn.uniteEnseignement!.nomMatiere}'
@@ -283,7 +281,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             _buildAttendanceRow(
               'Check-out',
               hasCheckOut ? DateFormat('HH:mm:ss').format(checkOut.timestamp) : 'N/A',
-              hasCheckOut ? Colors.blue : Colors.grey,
+              hasCheckOut ? AppColors.blue : Colors.grey,
               hasCheckOut ? checkOut.campus?.name : null,
               hasCheckOut && checkOut.uniteEnseignement != null
                   ? '${checkOut.uniteEnseignement!.codeUe} - ${checkOut.uniteEnseignement!.nomMatiere}'
@@ -296,12 +294,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
               const Divider(height: 24),
               Row(
                 children: [
-                  Icon(Icons.timer, size: 16, color: Colors.grey[600]),
+                  Icon(Icons.timer, size: 16, color: AppColors.inkMuted),
                   const SizedBox(width: 8),
                   Text(
                     'Durée travaillée: ${workedDuration.inHours}h ${workedDuration.inMinutes.remainder(60)}min',
                     style: TextStyle(
-                      color: Colors.grey[700],
+                      color: AppColors.inkMuted,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -325,14 +323,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
               label,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[600],
+                color: AppColors.inkMuted,
               ),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(Brutal.radius),
               ),
               child: Text(
                 time,
@@ -349,13 +347,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
           const SizedBox(height: 4),
           Row(
             children: [
-              Icon(Icons.location_on, size: 14, color: Colors.grey[400]),
+              Icon(Icons.location_on, size: 14, color: AppColors.inkMuted),
               const SizedBox(width: 4),
               Text(
                 campus,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey[600],
+                  color: AppColors.inkMuted,
                 ),
               ),
             ],
@@ -365,14 +363,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
           const SizedBox(height: 4),
           Row(
             children: [
-              Icon(Icons.school, size: 14, color: Colors.blue[400]),
+              Icon(Icons.school, size: 14, color: AppColors.blue),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   ue,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.blue[700],
+                    color: AppColors.blue,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -384,13 +382,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
           const SizedBox(height: 4),
           Row(
             children: [
-              Icon(Icons.warning_amber, size: 14, color: Colors.orange[600]),
+              Icon(Icons.warning_amber, size: 14, color: AppColors.warning),
               const SizedBox(width: 4),
               Text(
                 extra,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.orange[700],
+                  color: AppColors.warning,
                   fontWeight: FontWeight.w500,
                 ),
               ),

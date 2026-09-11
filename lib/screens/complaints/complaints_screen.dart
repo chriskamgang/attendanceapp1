@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import '../../models/complaint.dart';
 import '../../services/api_service.dart';
 import 'create_complaint_screen.dart';
@@ -42,10 +44,9 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mes Plaintes'),
-        backgroundColor: const Color(0xFF1A237E),
-        foregroundColor: Colors.white,
+      appBar: RhAppBar(
+        titre: 'Mes Plaintes',
+        retour: () => Navigator.of(context).pop(),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -70,7 +71,7 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
           );
           if (result == true) _loadComplaints();
         },
-        backgroundColor: const Color(0xFF1A237E),
+        backgroundColor: AppColors.blueDark,
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
@@ -128,7 +129,7 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 2,
+      elevation: 0,
       child: ExpansionTile(
         title: Text(
           complaint.subject,
@@ -172,7 +173,7 @@ class _ComplaintsScreenState extends State<ComplaintsScreen> {
                   const SizedBox(height: 8),
                   const Text(
                     'Réponse de l\'administration :',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1A237E)),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.blueDark),
                   ),
                   const SizedBox(height: 4),
                   Container(

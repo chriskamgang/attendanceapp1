@@ -45,7 +45,7 @@ class NotificationManager {
     required String body,
     Map<String, dynamic>? data,
   }) async {
-    await _notificationService._showLocalNotification(
+    await _notificationService.showLocalNotification(
       title: title,
       body: body,
       payload: data != null ? _encodeData(data) : null,
@@ -57,7 +57,7 @@ class NotificationManager {
     required String campusName,
     String? message,
   }) async {
-    await _notificationService._showLocalNotification(
+    await _notificationService.showLocalNotification(
       title: 'Scanner disponible',
       body: message ?? 'Vous pouvez maintenant scanner votre QR code au $campusName',
     );
@@ -69,7 +69,7 @@ class NotificationManager {
     required DateTime startTime,
   }) async {
     final timeStr = '${startTime.hour}:${startTime.minute.toString().padLeft(2, '0')}';
-    await _notificationService._showLocalNotification(
+    await _notificationService.showLocalNotification(
       title: 'Rappel de pointage',
       body: 'N\'oubliez pas de pointer pour le cours "$courseName" à $timeStr',
     );

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import '../../services/api_service.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -111,7 +113,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: process['type'] == 'onboarding' ? Colors.green[50] : Colors.red[50],
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(Brutal.radius),
                     ),
                     child: Text(
                       process['type_label'] ?? process['type'] ?? '',
@@ -125,7 +127,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   const Spacer(),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: color.withAlpha(30), borderRadius: BorderRadius.circular(20)),
+                    decoration: BoxDecoration(color: color.withAlpha(30), borderRadius: BorderRadius.circular(Brutal.radius)),
                     child: Text(_statusLabel(status), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color)),
                   ),
                 ],

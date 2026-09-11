@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import '../../services/api_service.dart';
 
 class HrAnalyticsScreen extends StatefulWidget {
@@ -118,8 +120,9 @@ class _HrAnalyticsScreenState extends State<HrAnalyticsScreen> {
           width: double.infinity,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [Color(0xFF37474F), Color(0xFF263238)]),
+            color: Color(0xFF37474F),
             borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.ink, width: Brutal.border),
           ),
           child: Column(
             children: [
@@ -227,7 +230,7 @@ class _HrAnalyticsScreenState extends State<HrAnalyticsScreen> {
 
     return Row(
       children: [
-        Expanded(child: _statCard('Formations actives', '${training?['active_enrollments'] ?? 0}', Icons.school, const Color(0xFF0D47A1))),
+        Expanded(child: _statCard('Formations actives', '${training?['active_enrollments'] ?? 0}', Icons.school, AppColors.blueDark)),
         const SizedBox(width: 8),
         Expanded(child: _statCard('Postes ouverts', '${recruitment?['open_positions'] ?? 0}', Icons.work, const Color(0xFFE65100))),
         const SizedBox(width: 8),

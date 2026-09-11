@@ -87,7 +87,7 @@ class FirebaseNotificationService {
     );
 
     await _localNotifications.initialize(
-      initSettings,
+      settings: initSettings,
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
 
@@ -361,6 +361,16 @@ class FirebaseNotificationService {
     }
   }
 
+  /// Afficher une notification locale, depuis l'extérieur du service.
+  ///
+  /// [NotificationManager] compose ses alertes à partir d'ici : la variante
+  /// privée reste réservée aux chemins internes (messages FCM, réponses).
+  Future<void> showLocalNotification({
+    required String title,
+    required String body,
+    String? payload,
+  }) => _showLocalNotification(title: title, body: body, payload: payload);
+
   /// Afficher une notification locale
   Future<void> _showLocalNotification({
     required String title,
@@ -392,10 +402,10 @@ class FirebaseNotificationService {
     );
 
     await _localNotifications.show(
-      DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      title,
-      body,
-      notificationDetails,
+      id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title: title,
+      body: body,
+      notificationDetails: notificationDetails,
       payload: payload,
     );
   }
@@ -441,10 +451,10 @@ class FirebaseNotificationService {
     );
 
     await _localNotifications.show(
-      incidentId,
-      'Confirmation de présence',
-      'Êtes-vous toujours en place au $campusName ?',
-      notificationDetails,
+      id: incidentId,
+      title: 'Confirmation de présence',
+      body: 'Êtes-vous toujours en place au $campusName ?',
+      notificationDetails: notificationDetails,
       payload: jsonEncode({
         'type': 'presence_check',
         'incident_id': incidentId,
@@ -485,10 +495,10 @@ class FirebaseNotificationService {
     );
 
     await _localNotifications.show(
-      campusId + 10000, // ID unique basé sur le campus
-      'Pointage disponible',
-      'Vous êtes à $campusName. Vous pouvez faire votre check-in maintenant !',
-      notificationDetails,
+      id: campusId + 10000, // ID unique basé sur le campus
+      title: 'Pointage disponible',
+      body: 'Vous êtes à $campusName. Vous pouvez faire votre check-in maintenant !',
+      notificationDetails: notificationDetails,
       payload: jsonEncode({
         'type': 'geofence_entry',
         'campus_id': campusId,
@@ -533,7 +543,7 @@ class FirebaseNotificationService {
 
   /// Annuler une notification spécifique
   Future<void> cancelNotification(int id) async {
-    await _localNotifications.cancel(id);
+    await _localNotifications.cancel(id: id);
   }
 
   /// Annuler toutes les notifications
@@ -639,7 +649,7 @@ Future<void> _firebaseBackgroundHandler(RemoteMessage message) async {
       android: androidSettings,
       iOS: iosSettings,
     );
-    await localNotifications.initialize(initSettings);
+    await localNotifications.initialize(settings: initSettings);
 
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
@@ -668,10 +678,10 @@ Future<void> _firebaseBackgroundHandler(RemoteMessage message) async {
     final body = message.data['body'] ?? '';
 
     await localNotifications.show(
-      DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      title,
-      body,
-      notificationDetails,
+      id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title: title,
+      body: body,
+      notificationDetails: notificationDetails,
       payload: jsonEncode(message.data),
     );
   }

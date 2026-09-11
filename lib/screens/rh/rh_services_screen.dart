@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import '../leaves/leaves_screen.dart';
 import '../absences/absences_screen.dart';
 import '../certificates/certificates_screen.dart';
@@ -13,7 +15,6 @@ import '../orgchart/orgchart_screen.dart';
 import '../training/training_screen.dart';
 import '../analytics/hr_analytics_screen.dart';
 import '../tickets/tickets_screen.dart';
-import '../bus/bus_home_screen.dart';
 
 class RhServicesScreen extends StatelessWidget {
   const RhServicesScreen({super.key});
@@ -21,18 +22,9 @@ class RhServicesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
-      appBar: AppBar(
-        title: const Text(
-          'Services RH',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF1A1A2E),
-        elevation: 0,
-        surfaceTintColor: Colors.transparent,
-      ),
+      backgroundColor: AppColors.background,
+      // Onglet, non écran empilé : le bandeau ne porte pas de retour.
+      appBar: const RhAppBar(titre: 'Services RH'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -77,7 +69,7 @@ class RhServicesScreen extends StatelessWidget {
               _ServiceItem(
                 icon: Icons.account_balance_wallet_rounded,
                 label: 'Portefeuille',
-                color: const Color(0xFF1A237E),
+                color: AppColors.blueDark,
                 onTap: () => _navigate(context, const WalletScreen()),
               ),
               _ServiceItem(
@@ -128,20 +120,6 @@ class RhServicesScreen extends StatelessWidget {
 
             const SizedBox(height: 24),
 
-            // Section Transport
-            _buildSectionTitle('Transport'),
-            const SizedBox(height: 10),
-            _buildGrid(context, [
-              _ServiceItem(
-                icon: Icons.directions_bus_rounded,
-                label: 'Bus INSAM',
-                color: const Color(0xFF1565C0),
-                onTap: () => _navigate(context, const BusHomeScreen()),
-              ),
-            ]),
-
-            const SizedBox(height: 24),
-
             // Section Communication
             _buildSectionTitle('Communication'),
             const SizedBox(height: 10),
@@ -149,7 +127,7 @@ class RhServicesScreen extends StatelessWidget {
               _ServiceItem(
                 icon: Icons.confirmation_number_rounded,
                 label: 'Tickets',
-                color: const Color(0xFF0D47A1),
+                color: AppColors.blueDark,
                 onTap: () => _navigate(context, const TicketsScreen()),
               ),
               _ServiceItem(
@@ -173,17 +151,7 @@ class RhServicesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.w700,
-        color: Color(0xFF1A1A2E),
-        letterSpacing: 0.3,
-      ),
-    );
-  }
+  Widget _buildSectionTitle(String title) => RhSectionTitle(title);
 
   Widget _buildGrid(BuildContext context, List<_ServiceItem> items) {
     return GridView.count(
@@ -192,51 +160,19 @@ class RhServicesScreen extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      childAspectRatio: 1.5,
+      // Les tuiles encadrées portent une ombre : un rapport plus haut leur
+      // laisse la place sans rogner les libellés sur deux lignes.
+      childAspectRatio: 1.35,
       children: items.map((item) => _buildCard(context, item)).toList(),
     );
   }
 
   Widget _buildCard(BuildContext context, _ServiceItem item) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      elevation: 0,
-      child: InkWell(
-        onTap: item.onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.withOpacity(0.1)),
-          ),
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: item.color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(item.icon, color: item.color, size: 22),
-              ),
-              Text(
-                item.label,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A1A2E),
-                  height: 1.2,
-                ),
-                maxLines: 2,
-              ),
-            ],
-          ),
-        ),
-      ),
+    return RhServiceTile(
+      titre: item.label,
+      icone: item.icon,
+      accent: item.color,
+      onTap: item.onTap,
     );
   }
 

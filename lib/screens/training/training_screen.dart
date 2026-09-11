@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import '../../services/api_service.dart';
 
 class TrainingScreen extends StatefulWidget {
@@ -63,7 +65,7 @@ class _TrainingScreenState extends State<TrainingScreen> with SingleTickerProvid
     return Scaffold(
       appBar: AppBar(
         title: const Text('Formations'),
-        backgroundColor: const Color(0xFF0D47A1),
+        backgroundColor: AppColors.blueDark,
         foregroundColor: Colors.white,
         bottom: TabBar(
           controller: _tabController,
@@ -133,7 +135,7 @@ class _TrainingScreenState extends State<TrainingScreen> with SingleTickerProvid
         label: Text(label, style: const TextStyle(fontSize: 12)),
         selected: selected,
         onSelected: (_) => onTap(),
-        selectedColor: const Color(0xFF0D47A1),
+        selectedColor: AppColors.blueDark,
         labelStyle: TextStyle(color: selected ? Colors.white : Colors.black87),
       ),
     );
@@ -159,12 +161,12 @@ class _TrainingScreenState extends State<TrainingScreen> with SingleTickerProvid
                   Container(
                     width: 44, height: 44,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0D47A1).withAlpha(20),
+                      color: AppColors.blueDark.withAlpha(20),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
                       program['type'] == 'online' ? Icons.computer : program['type'] == 'presential' ? Icons.groups : Icons.sync,
-                      color: const Color(0xFF0D47A1),
+                      color: AppColors.blueDark,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -310,7 +312,7 @@ class _TrainingScreenState extends State<TrainingScreen> with SingleTickerProvid
                               value: (e['progress'] ?? 0) / 100,
                               backgroundColor: Colors.grey[200],
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                status == 'completed' ? Colors.green : const Color(0xFF0D47A1),
+                                status == 'completed' ? Colors.green : AppColors.blueDark,
                               ),
                               minHeight: 8,
                             ),
@@ -430,7 +432,7 @@ class _TrainingDetailScreenState extends State<TrainingDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_program?['title'] ?? 'Formation'),
-        backgroundColor: const Color(0xFF0D47A1),
+        backgroundColor: AppColors.blueDark,
         foregroundColor: Colors.white,
       ),
       body: _isLoading
@@ -474,7 +476,7 @@ class _TrainingDetailScreenState extends State<TrainingDetailScreen> {
                   if (_enrollment != null) ...[
                     Card(
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      color: const Color(0xFF0D47A1),
+                      color: AppColors.blueDark,
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Row(
@@ -511,7 +513,7 @@ class _TrainingDetailScreenState extends State<TrainingDetailScreen> {
                             : const Icon(Icons.add),
                         label: const Text("S'inscrire", style: TextStyle(fontSize: 16)),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0D47A1),
+                          backgroundColor: AppColors.blueDark,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
@@ -536,7 +538,7 @@ class _TrainingDetailScreenState extends State<TrainingDetailScreen> {
                       margin: const EdgeInsets.only(bottom: 8),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       child: ListTile(
-                        leading: const Icon(Icons.event, color: Color(0xFF0D47A1)),
+                        leading: const Icon(Icons.event, color: AppColors.blueDark),
                         title: Text(s['start_date'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                         subtitle: Text([s['location'], s['trainer_name']].where((e) => e != null).join(' - '), style: const TextStyle(fontSize: 12)),
                       ),
@@ -569,7 +571,7 @@ class _TrainingDetailScreenState extends State<TrainingDetailScreen> {
       child: ListTile(
         leading: Icon(
           isCompleted ? Icons.check_circle : typeIcon,
-          color: isCompleted ? Colors.green : const Color(0xFF0D47A1),
+          color: isCompleted ? Colors.green : AppColors.blueDark,
         ),
         title: Text(
           material['title'] ?? '',
@@ -591,7 +593,7 @@ class _TrainingDetailScreenState extends State<TrainingDetailScreen> {
         ),
         trailing: canComplete
             ? IconButton(
-                icon: const Icon(Icons.check, color: Color(0xFF0D47A1)),
+                icon: const Icon(Icons.check, color: AppColors.blueDark),
                 onPressed: () => _completeMaterial(material['id']),
               )
             : null,

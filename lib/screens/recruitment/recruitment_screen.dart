@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../shared/rh_ui.dart';
 import '../../services/api_service.dart';
 
 class RecruitmentScreen extends StatefulWidget {
@@ -84,7 +86,7 @@ class _RecruitmentScreenState extends State<RecruitmentScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: isOpen ? Colors.green[50] : Colors.red[50],
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(Brutal.radius),
                     ),
                     child: Text(
                       isOpen ? 'Ouvert' : 'Ferme',
